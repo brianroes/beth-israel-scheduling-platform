@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1B2B4B">
 <title>Shabbat Schedule — Beth Israel Messianic Synagogue</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,6 +50,9 @@ input  { font-family: inherit; }
 #nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 #nav-status { font-size: 0.7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
 #lock-btn { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
+#music-btn { display: none; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
+#music-btn:hover { background: rgba(196,151,58,.15); border-color: var(--gold); }
+#music-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 199; }
 #lock-btn:hover { border-color: var(--gold); background: rgba(196,151,58,0.12); }
 #lock-btn.open { color: #E08B25; border-color: rgba(224,139,37,0.5); background: rgba(224,139,37,0.08); }
 #lock-btn svg { width: 18px; height: 18px; display: block; }
@@ -220,6 +224,10 @@ input  { font-family: inherit; }
   #cal-month-lbl { font-size: 1.05rem; }
   #bisw-body { overflow: hidden; }
   #bisw-content { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #music-btn { display: flex; }
+  #service-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 85vw; max-width: 340px; z-index: 200; transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1); border-left: 1px solid rgba(27,43,75,.15); border-top: none; box-shadow: -4px 0 28px rgba(15,23,42,.22); overflow-y: auto; }
+  #service-panel.open { transform: translateX(0); }
+  #music-backdrop.open { display: block; }
   .role-col { border-right: none; border-bottom: 4px solid var(--blue-bg); }
   .role-col:nth-child(3) { grid-column: unset; display: flex; flex-direction: column; }
   .col-fill { display: none; }
@@ -373,7 +381,6 @@ input  { font-family: inherit; }
 @media (max-width: 800px) {
   #view-day { flex-direction: column; overflow: visible; }
   .schedule-grid { overflow-y: visible; overflow-x: hidden; }
-  #service-panel { width: 100% !important; border-left: none; border-top: 2px solid rgba(27,43,75,.1); }
 }
 @media (max-width: 767px) {
   .schedule-grid { grid-template-columns: 1fr !important; }
@@ -743,6 +750,7 @@ input  { font-family: inherit; }
 </style>
 </head>
 <body>
+<div id="music-backdrop"></div>
 <div id="bisw">
 
   <nav id="bisw-nav">
@@ -800,6 +808,13 @@ input  { font-family: inherit; }
 
     <div id="nav-right">
       <span id="nav-status">View only</span>
+      <button id="music-btn" title="Songs & Music">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:17px;height:17px;display:block">
+          <circle cx="7.5" cy="15" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="15.5" cy="13" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M10 15V5l8-2v3L10 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button id="lock-btn" title="Click to unlock">
         <svg id="svg-locked" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="10" width="16" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
@@ -1158,7 +1173,10 @@ function renderDayView(){
   });
 
   /* ── Service panel (right) ── */
+  const prevPanel=document.getElementById('service-panel');
+  const drawerWasOpen=prevPanel&&prevPanel.classList.contains('open');
   const svcPanel=buildServicePanel(key);
+  if(drawerWasOpen)svcPanel.classList.add('open');
 
   wrap.appendChild(schedGrid);
   wrap.appendChild(svcPanel);
@@ -1302,7 +1320,11 @@ function buildServicePanel(key){
 
 function refreshServicePanel(key){
   const ex=$('service-panel');
-  if(ex)ex.replaceWith(buildServicePanel(key));
+  if(!ex)return;
+  const wasOpen=ex.classList.contains('open');
+  const np=buildServicePanel(key);
+  if(wasOpen)np.classList.add('open');
+  ex.replaceWith(np);
 }
 
 function buildSongsCard(key){
@@ -2776,6 +2798,15 @@ function doLock(){unlocked=false;closeDayDrawer();render();}
    ================================================================ */
 function isMobile(){return window.innerWidth<768;}
 function positionMobileSidebar(){if(!isMobile())return;const h=document.getElementById('bisw-nav').getBoundingClientRect().height;document.getElementById('bisw-sidebar').style.top=h+'px';}
+function openMusicDrawer(){
+  const sp=$('service-panel');if(!sp)return;
+  sp.classList.add('open');
+  $('music-backdrop').classList.add('open');
+}
+function closeMusicDrawer(){
+  const sp=$('service-panel');if(sp)sp.classList.remove('open');
+  $('music-backdrop').classList.remove('open');
+}
 function toggleMobileCal(){
   const sb=document.getElementById('bisw-sidebar'),ct=$('cal-toggle'),bk=$('cal-backdrop');
   const open=sb.classList.contains('open');
@@ -2788,6 +2819,8 @@ function closeMobileCal(){
 }
 $('cal-backdrop').addEventListener('click',closeMobileCal);
 $('cal-toggle').addEventListener('click',toggleMobileCal);
+$('music-btn').addEventListener('click',openMusicDrawer);
+$('music-backdrop').addEventListener('click',closeMusicDrawer);
 window.addEventListener('resize',()=>{positionMobileSidebar();if(!isMobile())closeMobileCal();});
 
 /* ================================================================
@@ -2880,7 +2913,7 @@ $('pdfGo').addEventListener('click',()=>{
 // Global Escape
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    closeDayDrawer();closeMobileCal();
+    closeDayDrawer();closeMobileCal();closeMusicDrawer();
     ['pwOverlay','addRoleOverlay','addGrpOverlay','pdfOverlay','confirmOverlay','musicPwOverlay','svcOverlay','addSvcOverlay']
       .forEach(id=>$(id).classList.remove('open'));
     closePdfViewer();
