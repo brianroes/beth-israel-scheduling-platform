@@ -810,11 +810,7 @@ input  { font-family: inherit; }
     <div id="nav-right">
       <span id="nav-status">View only</span>
       <button id="music-btn" title="Songs & Music">
-        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:17px;height:17px;display:block">
-          <circle cx="7.5" cy="15" r="2.5" stroke="currentColor" stroke-width="1.6"/>
-          <circle cx="15.5" cy="13" r="2.5" stroke="currentColor" stroke-width="1.6"/>
-          <path d="M10 15V5l8-2v3L10 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <span style="font-size:20px;line-height:1;display:block;margin-top:-1px">&#119070;</span>
       </button>
       <button id="lock-btn" title="Click to unlock">
         <svg id="svg-locked" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2825,7 +2821,11 @@ function closeMobileCal(){
 }
 $('cal-backdrop').addEventListener('click',closeMobileCal);
 $('cal-toggle').addEventListener('click',toggleMobileCal);
-$('music-btn').addEventListener('click',openMusicDrawer);
+$('music-btn').addEventListener('click',()=>{
+  const sp=$('service-panel');
+  if(sp&&sp.classList.contains('open'))closeMusicDrawer();
+  else openMusicDrawer();
+});
 $('music-backdrop').addEventListener('click',closeMusicDrawer);
 window.addEventListener('resize',()=>{positionMobileSidebar();if(!isMobile())closeMobileCal();});
 
