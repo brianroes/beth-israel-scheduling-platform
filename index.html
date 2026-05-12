@@ -363,7 +363,8 @@ input  { font-family: inherit; }
   .role-col:nth-child(3) { grid-column: unset !important; display: flex !important; flex-direction: column !important; }
 }
 @media (max-width: 800px) {
-  .schedule-grid { overflow-y: visible; }
+  #view-day { flex-direction: column; overflow: visible; }
+  .schedule-grid { overflow-y: visible; overflow-x: hidden; }
   #service-panel { width: 100% !important; border-left: none; border-top: 2px solid rgba(27,43,75,.1); }
 }
 @media (max-width: 767px) {
