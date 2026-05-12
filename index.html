@@ -1,0 +1,2919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shabbat Schedule — Beth Israel Messianic Synagogue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #E8EFF5; font-size: 16px; }
+button { font-family: inherit; cursor: pointer; }
+input  { font-family: inherit; }
+
+:root {
+  --navy:      #1B2B4B;
+  --navy-mid:  #2C3E5E;
+  --navy-lt:   #3D5A80;
+  --gold:      #C4973A;
+  --gold-dk:   #A87D28;
+  --gold-xdk:  #7C5C1A;
+  --blue-bg:   #E8EFF5;
+  --blue-mid:  #D4DFE9;
+  --muted:     #6B7FA0;
+  --danger:    #C0392B;
+  --white:     #FFFFFF;
+  --ink:       #0F172A;
+  --ink-2:     #1E293B;
+  --serif:     'Playfair Display', Georgia, serif;
+  --sans:      'Inter', system-ui, sans-serif;
+}
+
+#bisw { height: 100vh; display: flex; flex-direction: column; font-family: var(--sans); color: var(--ink); }
+
+#bisw-nav { height: 54px; background: var(--navy); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; border-bottom: 2px solid rgba(196,151,58,0.3); }
+.nav-arrow { background: transparent; border: 1.5px solid rgba(255,255,255,0.25); border-radius: 5px; color: rgba(255,255,255,0.8); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; padding: 0; flex-shrink: 0; transition: all .15s; }
+.nav-arrow:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
+#nav-date { font-family: var(--serif); font-size: 1.05rem; font-weight: 600; color: #fff; white-space: nowrap; letter-spacing: -.01em; padding: 0 4px; }
+#view-tabs { display: none; align-items: center; gap: 2px; margin-left: 16px; background: rgba(0,0,0,0.2); border-radius: 7px; padding: 3px; }
+#view-tabs.show { display: flex; }
+.view-tab { font-size: 0.72rem; font-weight: 600; letter-spacing: .04em; color: rgba(255,255,255,0.55); background: transparent; border: none; padding: 5px 13px; border-radius: 5px; transition: all .14s; white-space: nowrap; }
+.view-tab:hover { color: rgba(255,255,255,0.85); }
+.view-tab.active { background: var(--white); color: var(--navy); }
+#nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+#nav-status { font-size: 0.7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+#lock-btn { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
+#lock-btn:hover { border-color: var(--gold); background: rgba(196,151,58,0.12); }
+#lock-btn.open { color: #E08B25; border-color: rgba(224,139,37,0.5); background: rgba(224,139,37,0.08); }
+#lock-btn svg { width: 18px; height: 18px; display: block; }
+
+#bisw-body { flex: 1; display: flex; overflow: hidden; }
+
+#bisw-sidebar { width: 232px; background: var(--blue-bg); border-right: 1px solid rgba(27,43,75,0.12); display: flex; flex-direction: column; flex-shrink: 0; padding: 20px 16px; gap: 0; overflow-y: auto; }
+.sidebar-month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+#cal-month-lbl { font-family: var(--serif); font-size: 1rem; font-weight: 700; color: var(--ink); }
+.cal-nav-btn { background: transparent; border: 1.5px solid rgba(27,43,75,0.2); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; color: var(--navy); font-size: 12px; padding: 0; transition: all .13s; }
+.cal-nav-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+.cal-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.cal-dow { text-align: center; font-size: 0.6rem; font-weight: 700; letter-spacing: .04em; color: rgba(27,43,75,0.35); padding-bottom: 4px; }
+.cal-dow.sat-lbl { color: var(--gold-dk); }
+#cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-cell { height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border-radius: 6px; color: rgba(27,43,75,0.28); }
+.cal-cell.is-sat { color: var(--navy); font-weight: 700; cursor: pointer; border-radius: 50%; transition: all .12s; }
+.cal-cell.is-sat:hover { background: rgba(27,43,75,0.1); }
+.cal-cell.is-sat.sel { background: var(--gold); color: #fff; }
+.cal-cell.is-sat.past { color: rgba(27,43,75,0.35); }
+.cal-cell.is-sat.past:hover { background: rgba(27,43,75,0.06); }
+.cal-cell.is-sat.near-future { color: var(--navy); }
+.cal-legend { margin-top: 14px; font-size: 0.65rem; font-weight: 500; color: var(--muted); line-height: 1.5; padding-top: 12px; border-top: 1px solid rgba(27,43,75,0.1); }
+.cal-legend span { display: inline-block; width: 10px; height: 10px; background: var(--gold); border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+#bisw-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+#view-day { flex: 1; display: flex; overflow: hidden; }
+.role-col { display: flex; flex-direction: column; background: var(--white); border-right: 1px solid rgba(27,43,75,0.09); overflow: hidden; }
+.role-col:last-child { border-right: none; }
+.grp-hdr { background: var(--navy); color: #fff; padding: 0 14px; height: 52px; display: flex; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+.role-row { display: flex; align-items: center; padding: 0 20px; min-height: 52px; border-bottom: 1px solid rgba(27,43,75,0.07); flex-shrink: 0; gap: 0; transition: background .12s; position: relative; overflow: hidden; }
+.role-row:last-of-type { border-bottom: none; }
+.edit-mode .role-row { cursor: pointer; }
+.edit-mode .role-row:hover { background: rgba(27,43,75,0.03); }
+.edit-mode .role-row.active { background: rgba(196,151,58,0.07); }
+.edit-mode .role-row.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
+.rname { font-size: 0.9rem; font-weight: 700; color: var(--ink); flex-shrink: 0; max-width: 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.leader { flex: 1; align-self: center; height: 1px; min-width: 8px; margin: 0 10px; background-image: repeating-linear-gradient(90deg, rgba(27,43,75,0.15) 0, rgba(27,43,75,0.15) 2px, transparent 2px, transparent 7px); }
+.rvols { display: flex; align-items: center; flex-shrink: 0; max-width: 52%; overflow: hidden; }
+.vol-name { font-size: 0.85rem; font-weight: 500; color: var(--gold-xdk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vol-sep { font-size: 0.7rem; color: rgba(124,92,26,0.35); margin: 0 5px; flex-shrink: 0; }
+.unassigned { font-size: 0.78rem; font-style: italic; color: #C8D6E0; opacity: 0.7; }
+
+/* View-only: fade the whole role row when nobody is assigned */
+#bisw:not(.edit-mode) .role-row.unassigned-row .rname { color: rgba(15,23,42,0.42); font-weight: 600; }
+#bisw:not(.edit-mode) .role-row.unassigned-row .leader { opacity: 0.45; }
+
+.row-caret { display: none; position: absolute; right: 14px; color: rgba(27,43,75,0.2); font-size: 10px; pointer-events: none; }
+.edit-mode .row-caret { display: block; }
+.edit-mode .role-row.active .row-caret { color: var(--gold); }
+.col-fill { flex: 1; background: var(--white); }
+
+#view-multiweek { flex: 1; display: flex; overflow: hidden; }
+.mw-role-list { width: 200px; background: var(--blue-bg); border-right: 1px solid rgba(27,43,75,0.1); overflow-y: auto; flex-shrink: 0; }
+.mw-role-list::-webkit-scrollbar { width: 3px; }
+.mw-role-list::-webkit-scrollbar-thumb { background: rgba(27,43,75,0.15); border-radius: 2px; }
+.mw-role-group-hdr { padding: 10px 16px 6px; font-size: 0.62rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); background: rgba(27,43,75,0.05); border-bottom: 1px solid rgba(27,43,75,0.07); }
+.mw-role-item { padding: 11px 16px; font-size: 0.85rem; font-weight: 500; color: var(--ink-2); border-bottom: 1px solid rgba(27,43,75,0.06); cursor: pointer; transition: background .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mw-role-item:hover { background: rgba(27,43,75,0.05); }
+.mw-role-item.selected { background: var(--navy); color: #fff; }
+.mw-grid-area { flex: 1; overflow: auto; padding: 24px 28px; }
+.mw-grid-area::-webkit-scrollbar { width: 4px; height: 4px; }
+.mw-grid-area::-webkit-scrollbar-thumb { background: rgba(27,43,75,0.15); border-radius: 2px; }
+.mw-empty { color: var(--muted); font-size: 0.9rem; font-style: italic; text-align: center; margin-top: 60px; }
+.mw-role-title { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+.mw-table { width: auto; border-collapse: collapse; table-layout: auto; }
+.mw-table th { text-align: center; padding: 7px 6px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0; color: var(--navy); background: var(--blue-mid); border-bottom: 2px solid rgba(27,43,75,0.15); line-height: 1.2; vertical-align: bottom; min-width: 44px; }
+.mw-table th:first-child { text-align: left; background: var(--navy); color: #fff; border-bottom-color: rgba(255,255,255,0.15); white-space: nowrap; padding: 7px 14px; min-width: 0; vertical-align: middle; }
+.mw-table td { padding: 8px 5px; border-bottom: 1px solid rgba(27,43,75,0.07); text-align: center; vertical-align: middle; }
+.mw-table td:first-child { text-align: left; font-size: 0.82rem; font-weight: 600; color: var(--ink); white-space: nowrap; background: rgba(27,43,75,0.02); padding: 8px 14px; }
+.mw-table tr:hover td { background: rgba(27,43,75,0.025); }
+.mw-table tr:hover td:first-child { background: rgba(27,43,75,0.06); }
+.mw-cb-wrap { display: flex; align-items: center; justify-content: center; }
+
+#view-manage { flex: 1; overflow-y: auto; padding: 24px 28px; }
+#view-manage::-webkit-scrollbar { width: 4px; }
+#view-manage::-webkit-scrollbar-thumb { background: rgba(27,43,75,0.15); border-radius: 2px; }
+.manage-group-block { margin-bottom: 24px; }
+.manage-group-hdr { display: flex; align-items: center; gap: 6px; background: var(--navy); padding: 11px 18px; border-bottom: 2px solid rgba(255,255,255,0.06); border-top: none; margin-top: 4px; border-radius: 0; justify-content: flex-start; }
+.manage-group-block:first-of-type .manage-group-hdr { margin-top: 0; }
+.btn-add-role-to-grp { font-size: 0.65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,0.72); border: 1.5px solid rgba(255,255,255,0.28); border-radius: 4px; padding: 4px 10px; background: transparent; transition: all .13s; }
+.btn-add-role-to-grp:hover { color: #fff; border-color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.1); }
+.manage-role-row { display: flex; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid rgba(27,43,75,0.07); gap: 12px; }
+.manage-role-row:last-child { border-bottom: none; }
+.manage-role-name-input { font-size: 0.9rem; font-weight: 700; color: var(--ink); border: 1.5px solid transparent; border-radius: 5px; padding: 3px 8px; background: transparent; outline: none; transition: all .13s; flex-shrink: 0; min-width: 160px; max-width: 200px; }
+.manage-role-name-input:hover { border-color: rgba(27,43,75,0.2); background: #F8FAFC; }
+.manage-role-name-input:focus { border-color: var(--gold); background: #fff; }
+.manage-role-vols { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.vol-chip { display: flex; align-items: center; gap: 5px; background: #F0F4F8; border: 1px solid rgba(27,43,75,0.14); border-radius: 20px; padding: 3px 10px; font-size: 0.78rem; font-weight: 500; color: var(--ink-2); }
+.chip-del { background: transparent; border: none; color: rgba(27,43,75,0.3); font-size: 13px; padding: 0; line-height: 1; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; transition: color .12s; border-radius: 50%; }
+.chip-del:hover { color: var(--danger); }
+.manage-add-vol { display: flex; align-items: center; gap: 6px; }
+.manage-role-actions { display: flex; gap: 5px; flex-shrink: 0; margin-left: auto; }
+.btn-del-role-sm { font-size: 0.65rem; font-weight: 700; letter-spacing: .05em; color: rgba(192,57,43,0.7); border: 1.5px solid rgba(192,57,43,0.25); border-radius: 5px; padding: 5px 10px; background: transparent; transition: all .12s; white-space: nowrap; }
+.btn-del-role-sm:hover { color: var(--danger); border-color: var(--danger); background: #fdecea; }
+.btn-add-new-group { font-size: 0.75rem; font-weight: 600; color: var(--navy); border: 2px dashed rgba(27,43,75,0.25); border-radius: 8px; padding: 12px 20px; background: transparent; transition: all .13s; width: 100%; margin-top: 8px; }
+.btn-add-new-group:hover { border-color: var(--navy); background: rgba(27,43,75,0.04); }
+
+.bisw-cb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border: 2px solid rgba(27,43,75,0.2); border-radius: 4px; cursor: pointer; position: relative; flex-shrink: 0; background: #fff; transition: all .14s; }
+.bisw-cb:checked { background: var(--gold); border-color: var(--gold); }
+.bisw-cb:checked::after { content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }
+
+.bisw-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 900; padding: 16px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.bisw-overlay.open { display: flex; }
+.bisw-modal { background: #fff; border-radius: 12px; padding: 28px 32px; max-width: 360px; width: 100%; box-shadow: 0 24px 64px rgba(15,23,42,0.3); text-align: center; animation: mIn .22s cubic-bezier(.34,1.56,.64,1); }
+@keyframes mIn { from{opacity:0;transform:scale(.92) translateY(12px)} to{opacity:1;transform:none} }
+.m-title { font-family: var(--serif); font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+.m-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.5; margin-bottom: 16px; }
+.m-input { width: 100%; font-size: 0.92rem; border: 2px solid rgba(27,43,75,0.18); border-radius: 8px; padding: 10px 14px; color: var(--ink); outline: none; transition: border-color .14s; margin-bottom: 8px; }
+.m-input:focus { border-color: var(--gold); }
+.m-input::placeholder { color: #B0C0CF; }
+.m-input.pw { text-align: center; letter-spacing: .12em; }
+.m-pw-err { font-size: 0.78rem; color: var(--danger); margin-top: 3px; display: none; }
+.m-pw-err.show { display: block; }
+.m-grp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.m-grp-tag { font-size: 0.72rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1.5px solid rgba(27,43,75,0.2); color: rgba(27,43,75,0.55); background: transparent; transition: all .12s; }
+.m-grp-tag:hover { border-color: var(--navy); color: var(--navy); }
+.m-grp-tag.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.m-actions { display: flex; gap: 9px; margin-top: 16px; }
+.btn-primary { flex: 1; font-size: 0.72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #fff; background: var(--gold); border: none; border-radius: 5px; padding: 11px; transition: background .14s; }
+.btn-primary:hover { background: var(--gold-dk); }
+.btn-primary.red { background: var(--danger); }
+.btn-primary.red:hover { background: #a93226; }
+.btn-cancel { font-size: 0.72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: transparent; border: 2px solid rgba(27,43,75,0.14); border-radius: 5px; padding: 11px 16px; transition: all .14s; }
+.btn-cancel:hover { color: var(--ink); border-color: rgba(27,43,75,0.3); }
+
+@supports (height: 100dvh) { #bisw { height: 100dvh; } }
+#cal-toggle { display: none; background: transparent; border: 1.5px solid rgba(255,255,255,0.28); border-radius: 5px; color: rgba(255,255,255,0.8); width: 34px; height: 34px; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; transition: all .14s; }
+#cal-toggle.open { background: rgba(255,255,255,0.14); border-color: #fff; color: #fff; }
+#cal-toggle:hover { border-color: #fff; color: #fff; }
+#cal-toggle svg { width: 16px; height: 16px; display: block; }
+#cal-backdrop { display: none; position: fixed; inset: 0; z-index: 148; background: rgba(15,23,42,0.3); }
+#cal-backdrop.open { display: block; }
+
+@media (max-width: 1023px) {
+  #bisw-sidebar { width: 192px; padding: 16px 14px; }
+  .role-col:nth-child(3) { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
+  .role-col:nth-child(3) .grp-hdr { grid-column: 1 / -1; }
+  .role-col:nth-child(3) .col-fill { display: none; }
+}
+@media (max-width: 900px) {
+  .rname { font-size: 0.82rem; }
+  .vol-name { font-size: 0.8rem; }
+  .grp-hdr { padding: 9px 14px; }
+  .role-row { padding: 0 14px; }
+}
+@media (max-width: 767px) {
+  #bisw-nav { height: auto; padding: 8px 14px; flex-wrap: wrap; row-gap: 6px; }
+  #nav-date { font-size: 0.9rem; order: 1; }
+  .nav-arrow { order: 0; }
+  #nav-right { order: 2; margin-left: auto; gap: 8px; }
+  #nav-status { display: none; }
+  #cal-toggle { display: flex; }
+  #lock-btn { width: 34px; height: 34px; }
+  #view-tabs { order: 10; width: 100%; margin-left: 0; background: rgba(0,0,0,0.25); }
+  .view-tab { flex: 1; text-align: center; font-size: 0.68rem; padding: 5px 6px; }
+  #bisw-sidebar { position: fixed; top: 0; left: 0; right: 0; bottom: auto; width: 100%; z-index: 149; border-right: none; border-bottom: 2px solid rgba(27,43,75,0.14); box-shadow: 0 10px 32px rgba(27,43,75,0.18); transform: translateY(-110%); transition: transform .22s cubic-bezier(.4,0,.2,1); max-height: 70vh; overflow-y: auto; padding: 18px 20px 20px; }
+  #bisw-sidebar.open { transform: translateY(0); }
+  .cal-cell { height: 36px; font-size: 0.82rem; }
+  .cal-cell.is-sat { height: 36px; width: 36px; font-size: 0.82rem; }
+  #cal-month-lbl { font-size: 1.05rem; }
+  #bisw-body { overflow: visible; }
+  #bisw-content { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .role-col { border-right: none; border-bottom: 4px solid var(--blue-bg); }
+  .role-col:nth-child(3) { grid-column: unset; display: flex; flex-direction: column; }
+  .col-fill { display: none; }
+  .grp-hdr { padding: 10px 16px; font-size: 0.65rem; }
+  .role-row { min-height: 56px; padding: 0 16px; }
+  .rname { font-size: 0.9rem; max-width: 48%; }
+  .leader { margin: 0 8px; }
+  .vol-name { font-size: 0.84rem; }
+  .unassigned { font-size: 0.8rem; }
+  #view-multiweek { flex-direction: column; }
+  .mw-role-list { width: 100%; height: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: none; border-bottom: 1px solid rgba(27,43,75,0.1); flex-shrink: 0; display: flex; align-items: center; padding: 10px 12px; gap: 7px; }
+  .mw-role-list::-webkit-scrollbar { height: 0; }
+  .mw-role-group-hdr { display: none; }
+  .mw-role-item { border-radius: 20px; border: 1.5px solid rgba(27,43,75,0.2); font-size: 0.78rem; padding: 7px 14px; flex-shrink: 0; min-width: auto; white-space: nowrap; }
+  .mw-role-item.selected { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .mw-grid-area { padding: 16px 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mw-role-title { font-size: 1.1rem; margin-bottom: 14px; }
+  .mw-empty { margin-top: 32px; font-size: 0.84rem; }
+  .mw-table th, .mw-table td { padding: 6px 4px; }
+  .mw-table th:first-child, .mw-table td:first-child { padding-left: 12px; padding-right: 8px; }
+  .mw-table th { font-size: 0.64rem; min-width: 40px; }
+  .mw-table td:first-child { font-size: 0.76rem; }
+  #view-manage { padding: 16px 14px; overflow-y: auto; }
+  .manage-group-block { margin-bottom: 18px; }
+  .manage-role-row { flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+  .manage-role-name-input { font-size: 0.9rem; min-width: 130px; max-width: 200px; padding: 4px 8px; }
+  .manage-role-vols { flex-basis: 100%; order: 3; }
+  .manage-role-actions { order: 2; margin-left: auto; }
+  .btn-add-new-group { padding: 10px 14px; font-size: 0.72rem; }
+  .m-input { font-size: 16px; padding: 11px 14px; }
+  .manage-add-field { font-size: 16px; }
+  .bisw-modal { padding: 24px 20px; border-radius: 14px; }
+  .m-title { font-size: 1.05rem; }
+}
+@media (max-width: 419px) {
+  #nav-date { font-size: 0.82rem; }
+  .nav-arrow { width: 28px; height: 28px; font-size: 12px; }
+  #lock-btn { width: 30px; height: 30px; }
+  #lock-btn svg { width: 15px; height: 15px; }
+  #cal-toggle { width: 30px; height: 30px; }
+  .view-tab { font-size: 0.6rem; letter-spacing: .02em; }
+  .role-row { min-height: 52px; }
+  .rname { font-size: 0.84rem; }
+}
+
+.drag-handle{display:none;width:22px;height:22px;flex-shrink:0;align-items:center;justify-content:center;cursor:grab;color:rgba(27,43,75,0.22);border-radius:4px;transition:color .12s;touch-action:none;user-select:none;-webkit-user-select:none;}
+.drag-handle svg{width:10px;height:14px;display:block;pointer-events:none;}
+.drag-handle:hover{color:rgba(27,43,75,0.55);background:rgba(27,43,75,0.05);}
+.drag-handle:active{cursor:grabbing;}
+.edit-mode .role-row .drag-handle,.edit-mode .manage-role-row .drag-handle,.edit-mode .grp-hdr .drag-handle{display:flex;}
+.edit-mode .grp-hdr{display:flex;align-items:center;gap:6px;padding:0 14px;}
+.grp-hdr-label{flex:1;}
+
+.export-wrap{position:relative;flex-shrink:0;}
+.export-btn{display:flex;align-items:center;gap:6px;font-family:inherit;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.82);background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.22);border-radius:6px;padding:6px 13px;cursor:pointer;transition:all .14s;white-space:nowrap;}
+.export-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.38);color:#fff;}
+.export-btn svg{width:13px;height:13px;flex-shrink:0;}
+.export-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border-radius:10px;box-shadow:0 14px 44px rgba(15,23,42,.18);min-width:228px;z-index:500;overflow:hidden;}
+.export-menu.open{display:block;animation:menuIn .17s cubic-bezier(.34,1.56,.64,1);}
+@keyframes menuIn{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:none}}
+.export-item{display:flex;align-items:center;gap:14px;width:100%;padding:13px 16px;background:transparent;border:none;border-bottom:1px solid rgba(27,43,75,.07);text-align:left;cursor:pointer;transition:background .12s;font-family:inherit;}
+.export-item:last-child{border-bottom:none;}
+.export-item:hover{background:#F0F4F8;}
+.export-item-icon{font-size:1.3rem;flex-shrink:0;line-height:1;}
+.export-item-label{font-size:.86rem;font-weight:700;color:#0F172A;display:block;margin-bottom:1px;}
+.export-item-hint{font-size:.7rem;color:#6B7FA0;display:block;}
+@media(max-width:479px){.export-btn-text{display:none;}.export-btn{padding:6px 10px;}.export-menu{right:-10px;}}
+
+.pdf-week-item{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(27,43,75,.06);transition:background .12s;}
+.pdf-week-item:last-child{border-bottom:none;}
+.pdf-week-item:hover{background:#F0F4F8;}
+.pdf-week-item input[type=checkbox]{width:16px;height:16px;accent-color:#C4973A;cursor:pointer;flex-shrink:0;}
+.pdf-wk-date{font-size:.86rem;font-weight:600;color:#0F172A;}
+.pdf-wk-status{font-size:.7rem;margin-top:1px;}
+.pdf-wk-status.has{color:#A87D28;}
+.pdf-wk-status.none{color:#B0C0CF;}
+
+.manage-group-name-input { font-family: inherit; font-size: 0.8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #fff; border: 1.5px solid transparent; background: transparent; border-radius: 5px; padding: 2px 6px; outline: none; cursor: text; transition: all .13s; min-width: 60px; max-width: 220px; flex: 1; text-align: left; }
+.manage-group-name-input::placeholder { color: rgba(255,255,255,0.4); }
+.manage-group-name-input:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.22); }
+.manage-group-name-input:focus { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.38); color: #fff; }
+.edit-mode .manage-group-hdr .drag-handle { display: flex; }
+.manage-grp-ghost { position: fixed; pointer-events: none; z-index: 9999; background: var(--navy); color: #fff; font-family: 'Inter', system-ui, sans-serif !important; font-size: .7rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; padding: 10px 18px; box-shadow: 0 8px 32px rgba(15,23,42,.25); border-radius: 4px; }
+
+.grp-hdr .drag-handle, .manage-group-hdr .drag-handle { color: rgba(255,255,255,0.5); }
+.grp-hdr .drag-handle:hover, .manage-group-hdr .drag-handle:hover { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.12); }
+.role-row .drag-handle, .manage-role-row .drag-handle { color: rgba(27,43,75,0.35); }
+.role-row .drag-handle:hover, .manage-role-row .drag-handle:hover { color: rgba(27,43,75,0.75); background: rgba(27,43,75,0.06); }
+
+.drop-line { height: 3px !important; margin: 0 !important; background: var(--gold) !important; box-shadow: 0 0 0 1px rgba(196,151,58,0.22), 0 2px 10px rgba(196,151,58,0.4) !important; border-radius: 0 !important; animation: none !important; opacity: 1 !important; pointer-events: none; position: relative; z-index: 10; }
+.drop-line::before, .drop-line::after { content: ''; position: absolute; top: 50%; transform: translateY(-50%); width: 7px; height: 7px; background: var(--gold); border-radius: 50%; }
+.drop-line::before { left: 4px; }
+.drop-line::after  { right: 4px; }
+.drag-over-hint { background: rgba(196,151,58,0.07) !important; outline: 1.5px solid rgba(196,151,58,0.22); outline-offset: -1px; }
+.mw-show-more-btn { display: block; margin: 18px auto 4px; font-family: inherit; font-size: .75rem; font-weight: 600; letter-spacing: .05em; color: var(--navy); background: transparent; border: 1.5px solid rgba(27,43,75,0.22); border-radius: 6px; padding: 9px 28px; cursor: pointer; transition: all .14s; }
+.mw-show-more-btn:hover { border-color: var(--navy); background: rgba(27,43,75,0.05); }
+.drag-lifted { position: relative; z-index: 20; box-shadow: 0 6px 22px rgba(15,23,42,0.16) !important; }
+.group-drag-unit { position: relative; z-index: 20; box-shadow: 0 6px 22px rgba(15,23,42,0.16); display: flex; flex-direction: column; }
+.drag-placeholder { background: rgba(196,151,58,0.07); border: 2px dashed rgba(196,151,58,0.38); border-radius: 4px; box-sizing: border-box; pointer-events: none; min-height: 4px; transition: height 0.15s ease; }
+.drag-ghost-active { box-shadow: 0 8px 32px rgba(15,23,42,0.22) !important; }
+.row-dragging, .grp-dragging { opacity: 1 !important; }
+
+.schedule-grid { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+.schedule-grid::-webkit-scrollbar { width: 4px; }
+.schedule-grid::-webkit-scrollbar-thumb { background: rgba(27,43,75,.12); border-radius: 2px; }
+#service-panel { width: 300px; flex-shrink: 0; background: #F9F6F1; border-left: 1px solid rgba(27,43,75,.1); overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+#service-panel::-webkit-scrollbar { width: 3px; }
+#service-panel::-webkit-scrollbar-thumb { background: rgba(27,43,75,.1); border-radius: 2px; }
+.svc-songs { background: #FDF8F0; border-bottom: 1px solid rgba(196,151,58,.15); padding: 0 0 14px; flex-shrink: 0; }
+.svc-hdr { display: flex; align-items: center; gap: 9px; padding: 12px 16px 10px; border-bottom: 1px solid rgba(196,151,58,.13); margin-bottom: 2px; }
+.svc-hdr-icon { font-size: 1rem; flex-shrink: 0; line-height: 1; }
+.svc-hdr-title { font-family: var(--serif); font-size: .9rem; font-weight: 700; color: var(--ink); flex: 1; }
+.song-group { padding: 8px 16px 0; }
+.song-group-lbl { font-size: .58rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--gold-dk); margin-bottom: 5px; display: block; }
+.song-row { display: flex; align-items: center; gap: 6px; min-height: 34px; margin-bottom: 3px; }
+.song-title-input { flex: 1; font-family: inherit; font-size: .82rem; color: var(--ink); border: 1.5px solid rgba(196,151,58,.22); border-radius: 5px; padding: 5px 9px; background: #fff; outline: none; transition: border-color .13s; }
+.song-title-input:focus { border-color: var(--gold); }
+.song-title-input::placeholder { color: #C8D8E4; font-style: italic; }
+.song-title-view { flex: 1; font-size: .84rem; font-style: italic; color: var(--ink-2); padding: 2px 0; }
+.song-title-empty { flex: 1; font-size: .78rem; font-style: italic; color: #C8D8E4; padding: 2px 0; }
+.pdf-icon-btn { flex-shrink: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1.5px solid rgba(196,151,58,.28); border-radius: 5px; cursor: pointer; color: var(--gold-dk); font-size: 13px; transition: all .13s; padding: 0; }
+.pdf-icon-btn:hover { background: rgba(196,151,58,.12); border-color: var(--gold); }
+.pdf-icon-btn.has { background: rgba(196,151,58,.12); border-color: var(--gold-dk); }
+.pdf-rm-btn { flex-shrink: 0; background: transparent; border: none; color: rgba(192,57,43,.4); cursor: pointer; font-size: 15px; padding: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; transition: color .12s; line-height: 1; }
+.pdf-rm-btn:hover { color: var(--danger); }
+.svc-locked-card { border-bottom: 1px solid rgba(27,43,75,.07); flex-shrink: 0; }
+.svc-locked-hdr { display: flex; align-items: center; gap: 9px; background: var(--navy); padding: 11px 16px; }
+.svc-locked-icon { font-size: .95rem; flex-shrink: 0; }
+.svc-locked-title { font-family: var(--serif); font-size: .82rem; font-weight: 700; color: #fff; flex: 1; }
+.svc-locked-body { padding: 12px 16px; background: #EEF2F8; }
+.svc-prayer-body { background: #EEF8F4; }
+.svc-textarea { width: 100%; font-family: inherit; font-size: .82rem; line-height: 1.55; color: var(--ink); border: 1.5px solid rgba(27,43,75,.14); border-radius: 6px; padding: 9px 11px; background: #fff; resize: vertical; min-height: 88px; outline: none; transition: border-color .13s; }
+.svc-textarea:focus { border-color: var(--gold); }
+.svc-textarea::placeholder { color: #C8D8E4; font-style: italic; }
+.svc-text-view { font-size: .82rem; line-height: 1.65; color: var(--ink-2); white-space: pre-wrap; }
+#musicPwOverlay .bisw-modal { max-width: 320px; }
+#pdfViewerOverlay { position: fixed; inset: 0; background: rgba(15,23,42,.75); display: none; flex-direction: column; z-index: 9100; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+#pdfViewerOverlay.open { display: flex; }
+#pdfViewerHdr { background: var(--navy); padding: 12px 20px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; border-bottom: 2px solid rgba(196,151,58,.3); }
+#pdfViewerTitle { font-family: var(--serif); font-size: .95rem; font-style: italic; color: #fff; flex: 1; }
+#pdfViewerClose { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 5px; color: #fff; width: 32px; height: 32px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .13s; padding: 0; line-height: 1; }
+#pdfViewerClose:hover { background: rgba(255,255,255,.22); }
+#pdfViewerNote { background: rgba(196,151,58,.12); border-bottom: 1px solid rgba(196,151,58,.2); padding: 5px 20px; font-size: .65rem; color: rgba(255,255,255,.55); text-align: center; font-style: italic; flex-shrink: 0; }
+#pdfViewerFrame { flex: 1; border: none; background: #fff; }
+
+@media (max-width: 1023px) {
+  .schedule-grid { grid-template-columns: 1fr !important; }
+  #service-panel { width: 260px; }
+  .role-col:nth-child(3) { grid-column: unset !important; display: flex !important; flex-direction: column !important; }
+}
+@media (max-width: 800px) {
+  .schedule-grid { overflow-y: visible; }
+  #service-panel { width: 100% !important; border-left: none; border-top: 2px solid rgba(27,43,75,.1); }
+}
+@media (max-width: 767px) {
+  .schedule-grid { grid-template-columns: 1fr !important; }
+}
+
+.rte-toolbar { display: flex; gap: 4px; padding: 6px 0 8px; flex-wrap: wrap; }
+.rte-btn { font-family: inherit; font-size: .72rem; font-weight: 700; color: var(--navy); background: #fff; border: 1.5px solid rgba(27,43,75,.18); border-radius: 4px; padding: 4px 9px; cursor: pointer; transition: all .12s; line-height: 1.2; }
+.rte-btn:hover { border-color: var(--navy); background: rgba(27,43,75,.05); }
+.rte-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.rte-editor { width: 100%; min-height: 88px; font-family: inherit; font-size: .82rem; line-height: 1.6; color: var(--ink); border: 1.5px solid rgba(27,43,75,.14); border-radius: 6px; padding: 9px 11px; background: #fff; outline: none; transition: border-color .13s; }
+.rte-editor:focus { border-color: var(--gold); }
+.rte-editor ul, .rte-editor ol { padding-left: 18px; }
+.rte-editor[placeholder]:empty::before { content: attr(placeholder); color: #C8D8E4; font-style: italic; pointer-events: none; }
+.svc-rte-view { font-size: .82rem; line-height: 1.65; color: var(--ink-2); }
+.svc-rte-view ul, .svc-rte-view ol { padding-left: 18px; }
+
+.pdf-upload-btn { display: flex; align-items: center; gap: 5px; flex-shrink: 0; font-family: inherit; font-size: .62rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: rgba(27,43,75,.4); border: 1.5px dashed rgba(27,43,75,.2); border-radius: 5px; padding: 4px 9px; background: transparent; cursor: pointer; transition: all .13s; white-space: nowrap; }
+.pdf-upload-btn:hover { color: var(--gold-dk); border-style: solid; border-color: rgba(196,151,58,.5); background: rgba(196,151,58,.06); }
+.pdf-upload-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+.pdf-dl-btn { flex-shrink: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: rgba(196,151,58,.1); border: 1.5px solid var(--gold-dk); border-radius: 5px; cursor: pointer; color: var(--gold-dk); font-size: 13px; transition: all .13s; padding: 0; }
+.pdf-dl-btn:hover { background: var(--gold); color: #fff; border-color: var(--gold); }
+.pdf-dl-btn svg { width: 13px; height: 13px; }
+.song-add-btn { font-family: inherit; font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(196,151,58,.7); border: 1.5px dashed rgba(196,151,58,.35); border-radius: 4px; padding: 4px 10px; background: transparent; cursor: pointer; transition: all .12s; display: block; margin: 5px 0 0 0; width: 100%; }
+.song-add-btn:hover { color: var(--gold-dk); border-style: solid; border-color: var(--gold); }
+.song-rm-btn { flex-shrink: 0; background: transparent; border: none; color: rgba(27,43,75,.2); cursor: pointer; font-size: 16px; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; transition: color .12s; line-height: 1; }
+.song-rm-btn:hover { color: var(--danger); }
+
+/* === Download-all button — clearly separated from song list === */
+.svc-dl-all-wrap {
+  margin: 18px 16px 18px;
+  padding-top: 18px;
+  border-top: 1.5px solid rgba(196,151,58,.32);
+}
+.pdf-dl-all-btn { display: flex; align-items: center; gap: 7px; font-family: inherit; font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--navy); border: 1.5px solid rgba(27,43,75,.25); border-radius: 5px; padding: 9px 14px; background: transparent; cursor: pointer; transition: all .13s; width: 100%; justify-content: center; }
+.pdf-dl-all-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pdf-dl-all-btn svg { width: 13px; height: 13px; }
+
+/* === Manage roles — minimalist Add Volunteer trigger (subtle text link) === */
+.manage-add-trigger {
+  font-family: inherit;
+  font-size: 0.74rem; font-weight: 500;
+  letter-spacing: 0;
+  color: rgba(27,43,75,0.42);
+  background: transparent;
+  border: none;
+  padding: 3px 6px;
+  margin-top: 2px;
+  cursor: pointer;
+  transition: color .14s;
+}
+.manage-add-trigger:hover { color: var(--gold-dk); }
+
+.manage-add-form { display: none; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; animation: panelIn .15s ease; }
+.manage-add-form.open { display: flex; }
+.manage-add-field { font-family: inherit; font-size: 0.78rem; border: 1.5px solid rgba(27,43,75,0.18); border-radius: 5px; padding: 5px 9px; color: var(--ink); background: #fff; outline: none; min-width: 80px; flex: 1; transition: border-color .13s; }
+.manage-add-field:focus { border-color: var(--gold); }
+.manage-add-field::placeholder { color: #B8CCE0; }
+.manage-add-save { font-family: inherit; font-size: 0.65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #fff; background: var(--gold); border: none; border-radius: 5px; padding: 6px 12px; cursor: pointer; transition: background .13s; flex-shrink: 0; }
+.manage-add-save:hover { background: var(--gold-dk); }
+.manage-add-cancel { font-family: inherit; font-size: 0.65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: rgba(27,43,75,0.38); background: transparent; border: 1.5px solid rgba(27,43,75,0.15); border-radius: 5px; padding: 6px 10px; cursor: pointer; transition: all .13s; flex-shrink: 0; }
+.manage-add-cancel:hover { color: var(--ink); border-color: rgba(27,43,75,0.3); }
+
+/* ============================================================
+   SERVICE ORDER EXPORT MODAL
+   ============================================================ */
+.svc-modal {
+  max-width: 760px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  text-align: left;
+  overflow: hidden;
+}
+.svc-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 28px 14px;
+  border-bottom: 1.5px solid rgba(196,151,58,.18);
+  flex-shrink: 0;
+}
+.svc-modal-date {
+  font-family: var(--serif);
+  font-size: .92rem;
+  font-style: italic;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.svc-close-x {
+  background: transparent;
+  border: 1.5px solid rgba(27,43,75,.15);
+  border-radius: 6px;
+  color: var(--muted);
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .13s;
+}
+.svc-close-x:hover {
+  color: var(--ink);
+  border-color: rgba(27,43,75,.35);
+  background: rgba(27,43,75,.04);
+}
+.svc-modal-hint {
+  padding: 11px 28px;
+  font-size: .78rem;
+  color: var(--muted);
+  background: rgba(196,151,58,.08);
+  border-bottom: 1px solid rgba(196,151,58,.18);
+  flex-shrink: 0;
+}
+.svc-preview {
+  padding: 22px 28px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.svc-preview::-webkit-scrollbar { width: 6px; }
+.svc-preview::-webkit-scrollbar-thumb { background: rgba(27,43,75,.18); border-radius: 3px; }
+.svc-modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 28px 22px;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(27,43,75,.08);
+  background: #FAFBFD;
+  flex-shrink: 0;
+}
+.svc-modal-actions .btn-primary,
+.svc-modal-actions .btn-cancel { padding: 11px 22px; font-size: .72rem; }
+
+/* Preview content */
+.svc-pv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+.svc-pv-table th {
+  background: var(--navy);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 8px 10px;
+}
+.svc-pv-table th.col-when { width: 95px; text-align: center; }
+.svc-pv-table th.col-min { width: 50px; text-align: center; }
+.svc-pv-table th.col-who { width: 140px; }
+.svc-pv-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(27,43,75,.08);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.svc-pv-table td.cell-who {
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--navy);
+  font-size: .78rem;
+  white-space: nowrap;
+}
+.svc-pv-table td.cell-when {
+  text-align: center;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+.svc-pv-table td.cell-min {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .78rem;
+}
+.svc-pv-table td.cell-what {
+  font-size: .82rem;
+  color: var(--ink-2);
+}
+.svc-pv-table td.cell-what strong { color: var(--ink); }
+
+/* Torah Lifter / Torah Escort — compact "Label: Name" lines (volunteer names bold, single line) */
+.svc-pv-table .role-pair-pv {
+  font-size: .76rem;
+  margin-top: 3px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--navy);
+  white-space: nowrap;
+}
+.svc-pv-table .role-pair-pv-lbl {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+/* Torah Service compact reading rows */
+.svc-pv-table .rd-row-pv {
+  margin-top: 3px;
+  font-size: .8rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.svc-pv-table .rd-row-pv strong { color: var(--navy); font-weight: 700; }
+
+/* Worship Set — single column, compact spacing */
+.svc-pv-table .ws-grid-pv {
+  margin-top: 4px;
+}
+.svc-pv-table .ws-item-pv {
+  position: relative;
+  padding-left: 12px;
+  font-size: .8rem;
+  line-height: 1.35;
+  color: var(--ink-2);
+  margin-bottom: 0;
+}
+.svc-pv-table .ws-item-pv::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  color: var(--gold-dk);
+  font-weight: 700;
+}
+.svc-pv-table .ws-item-pv.seudat {
+  padding-left: 0;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--gold-dk);
+}
+.svc-pv-table .ws-item-pv.seudat::before { content: ''; }
+
+/* Pipe divider — inherits color from surrounding text for clarity */
+.svc-pv-table .pipe-sep {
+  color: inherit;
+  margin: 0 8px;
+  font-weight: 400;
+}
+
+/* Two side-by-side boxes for prayer/announcements (below the table) */
+.svc-pv-ap-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+.svc-pv-ap-box {
+  border: 1.5px solid var(--gold);
+  border-radius: 6px;
+  padding: 12px 14px 14px;
+  background: #FDF8F0;
+}
+.svc-pv-ap-box h4 {
+  font-family: var(--serif);
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(196,151,58,.35);
+}
+.svc-pv-ap-box .ap-content-pv {
+  font-size: .8rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.svc-pv-ap-box .ap-content-pv ul,
+.svc-pv-ap-box .ap-content-pv ol { padding-left: 20px; }
+.svc-pv-ap-box .ap-content-pv em.empty { color: #B0C0CF; font-size: .76rem; }
+@media (max-width: 600px) {
+  .svc-pv-ap-boxes { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* Editable fields in preview */
+.svc-input {
+  font-family: var(--sans);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--gold-dk);
+  background: rgba(196,151,58,.1);
+  border: none;
+  border-bottom: 1.5px solid var(--gold);
+  border-radius: 0;
+  padding: 2px 6px;
+  outline: none;
+  transition: background .13s;
+  width: auto;
+  min-width: 160px;
+  max-width: 320px;
+  box-sizing: border-box;
+}
+.svc-input:focus {
+  background: rgba(196,151,58,.18);
+  border-bottom-color: var(--gold-dk);
+}
+.svc-input::placeholder { color: rgba(124,92,26,.45); font-weight: 400; font-style: italic; }
+.svc-input.svc-input-sm { min-width: 130px; max-width: 200px; font-size: .78rem; }
+
+.svc-seudat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(27,43,75,.04);
+  border-radius: 5px;
+  font-size: .78rem;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.svc-seudat-row input { cursor: pointer; }
+
+.svc-song-bullet {
+  display: block;
+  padding-left: 14px;
+  position: relative;
+  font-size: .8rem;
+  color: var(--ink-2);
+  margin-bottom: 1px;
+}
+.svc-song-bullet::before {
+  content: '•';
+  position: absolute;
+  left: 4px;
+  color: var(--gold-dk);
+}
+.svc-song-bullet.seudat {
+  font-weight: 700;
+  font-style: italic;
+  color: var(--gold-dk);
+  padding-left: 4px;
+}
+.svc-song-bullet.seudat::before { content: ''; }
+.svc-song-empty {
+  display: block;
+  padding-left: 4px;
+  font-size: .78rem;
+  font-style: italic;
+  color: #B0C0CF;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+  .svc-modal { max-height: 100vh; max-height: 100dvh; border-radius: 0; }
+  .svc-modal-head { padding: 16px 18px 12px; }
+  .svc-modal-hint { padding: 10px 18px; font-size: .76rem; }
+  .svc-preview { padding: 14px 14px; }
+  .svc-modal-actions { padding: 14px 18px; flex-direction: column-reverse; gap: 8px; }
+  .svc-modal-actions .btn-primary,
+  .svc-modal-actions .btn-cancel { width: 100%; }
+  .svc-pv-table th, .svc-pv-table td { padding: 8px 6px; font-size: .76rem; }
+  .svc-pv-table th.col-when { width: 80px; }
+  .svc-pv-table th.col-min { width: 40px; }
+  .svc-pv-table th.col-who { width: 95px; }
+  .svc-pv-table td.cell-who { font-size: .78rem; }
+  .svc-input { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+<div id="bisw">
+
+  <nav id="bisw-nav">
+    <button class="nav-arrow" id="navPrev">&#8592;</button>
+    <span id="nav-date">Loading&hellip;</span>
+    <button class="nav-arrow" id="navNext">&#8594;</button>
+
+    <div id="view-tabs">
+      <button class="view-tab active" data-view="day">Single Service</button>
+      <button class="view-tab" data-view="multiweek">Multi-Service</button>
+      <button class="view-tab" data-view="manage">Manage Roles</button>
+    </div>
+
+    <div class="export-wrap" id="export-wrap">
+      <button class="export-btn" id="export-btn" title="Export">
+        <svg viewBox="0 0 16 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1v11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M4.5 8L8 12l3.5-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M1 13.5V16h14v-2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="export-btn-text">Export</span>
+      </button>
+      <div class="export-menu" id="export-menu">
+        <button class="export-item" id="exp-pdf">
+          <span class="export-item-icon">&#128196;</span>
+          <span><span class="export-item-label">Save as PDF</span><span class="export-item-hint">Select one or more weeks</span></span>
+        </button>
+        <button class="export-item" id="exp-img">
+          <span class="export-item-icon">&#128444;</span>
+          <span><span class="export-item-label">Save as Image</span><span class="export-item-hint">JPEG &#8212; perfect for text messages</span></span>
+        </button>
+        <button class="export-item" id="exp-txt">
+          <span class="export-item-icon">&#128203;</span>
+          <span><span class="export-item-label">Copy as Text</span><span class="export-item-hint">Paste into any message</span></span>
+        </button>
+        <button class="export-item" id="exp-svc">
+          <span class="export-item-icon">&#128220;</span>
+          <span><span class="export-item-label">Export Service Order</span><span class="export-item-hint">Full order of service &mdash; for the service team</span></span>
+        </button>
+      </div>
+    </div>
+
+    <button id="cal-toggle" title="Show calendar">
+      <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x=".9" y="2.7" width="16.2" height="13.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M.9 7.2h16.2" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M5.4 1.35V4.05M12.6 1.35V4.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <rect x="3.6" y="9.45" width="2.25" height="2.25" rx=".5" fill="currentColor"/>
+        <rect x="7.875" y="9.45" width="2.25" height="2.25" rx=".5" fill="currentColor"/>
+        <rect x="12.15" y="9.45" width="2.25" height="2.25" rx=".5" fill="currentColor"/>
+        <rect x="3.6" y="12.6" width="2.25" height="2.25" rx=".5" fill="currentColor"/>
+        <rect x="7.875" y="12.6" width="2.25" height="2.25" rx=".5" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <div id="nav-right">
+      <span id="nav-status">View only</span>
+      <button id="lock-btn" title="Click to unlock">
+        <svg id="svg-locked" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="10" width="16" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M6 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="10" cy="17" r="1.8" fill="currentColor"/>
+        </svg>
+        <svg id="svg-unlocked" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
+          <rect x="2" y="10" width="16" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M6 10V7a4 4 0 0 1 8 0V5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="10" cy="17" r="1.8" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <div id="bisw-body">
+    <aside id="bisw-sidebar">
+      <div class="sidebar-month-nav">
+        <button class="cal-nav-btn" id="calPrev">&#8592;</button>
+        <span id="cal-month-lbl">May 2026</span>
+        <button class="cal-nav-btn" id="calNext">&#8594;</button>
+      </div>
+      <div class="cal-dow-row">
+        <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div>
+        <div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div>
+        <div class="cal-dow sat-lbl">S</div>
+      </div>
+      <div id="cal-grid"></div>
+      <div class="cal-legend"><span></span>Saturdays are selectable</div>
+    </aside>
+
+    <div id="bisw-content">
+      <div id="view-day"></div>
+      <div id="view-multiweek" style="display:none">
+        <div class="mw-role-list" id="mw-role-list"></div>
+        <div class="mw-grid-area" id="mw-grid-area">
+          <div class="mw-empty">Select a role from the list to schedule across multiple weeks.</div>
+        </div>
+      </div>
+      <div id="view-manage" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="pwOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Admin Access</div>
+      <div class="m-desc">Enter the password to unlock the schedule editor.</div>
+      <input type="password" class="m-input pw" id="pwInput" placeholder="Password" autocomplete="off">
+      <div class="m-pw-err" id="pwErr">Incorrect password. Please try again.</div>
+      <div class="m-actions"><button class="btn-cancel" id="pwCancel">Cancel</button><button class="btn-primary" id="pwSubmit">Unlock</button></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="addRoleOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Add New Role</div>
+      <div class="m-desc">Name the role and choose its group.</div>
+      <input type="text" class="m-input" id="newRoleName" placeholder="e.g. Greeter" maxlength="50">
+      <div class="m-grp-tags" id="newRoleGrpTags"></div>
+      <div class="m-actions"><button class="btn-cancel" id="addRoleCancel">Cancel</button><button class="btn-primary" id="addRoleOk">Add Role</button></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="addGrpOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Add New Group</div>
+      <div class="m-desc">Create a new ministry group and its first role.</div>
+      <input type="text" class="m-input" id="newGrpName" placeholder="Group name (e.g. Instrumental)" maxlength="40">
+      <input type="text" class="m-input" id="newGrpRoleName" placeholder="First role (e.g. Greeter)" maxlength="50">
+      <div class="m-actions"><button class="btn-cancel" id="addGrpCancel">Cancel</button><button class="btn-primary" id="addGrpOk">Create Group</button></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="pdfOverlay">
+    <div class="bisw-modal" style="max-width:420px;text-align:left">
+      <div class="m-title" style="text-align:center;margin-bottom:4px">Export as PDF</div>
+      <div class="m-desc" style="text-align:center;margin-bottom:14px">Select which weeks to include.</div>
+      <div id="pdf-week-list" style="border:1.5px solid rgba(27,43,75,.12);border-radius:8px;overflow-y:auto;max-height:280px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        <button id="pdfSelAll" class="btn-cancel" style="font-size:.63rem;padding:5px 10px;flex:1">Select All</button>
+        <button id="pdfSelNone" class="btn-cancel" style="font-size:.63rem;padding:5px 10px;flex:1">Clear All</button>
+      </div>
+      <div class="m-actions"><button class="btn-cancel" id="pdfCancel">Cancel</button><button class="btn-primary" id="pdfGo">Generate PDF</button></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="confirmOverlay">
+    <div class="bisw-modal">
+      <div class="m-title" id="confirmTitle">Confirm Delete</div>
+      <div class="m-desc" id="confirmDesc">This action cannot be undone.</div>
+      <div class="m-actions"><button class="btn-cancel" id="confirmNo">Cancel</button><button class="btn-primary red" id="confirmYes">Delete</button></div>
+    </div>
+  </div>
+
+  <div id="cal-backdrop"></div>
+
+  <div class="bisw-overlay" id="musicPwOverlay">
+    <div class="bisw-modal" style="max-width:320px">
+      <div class="m-title" style="font-size:1rem">Music Team Access</div>
+      <div class="m-desc">Enter the music team password to view this sheet music.</div>
+      <input type="password" class="m-input pw" id="musicPwInput" placeholder="Password" autocomplete="off">
+      <div class="m-pw-err" id="musicPwErr">Incorrect password. Please try again.</div>
+      <div class="m-actions">
+        <button class="btn-cancel" id="musicPwCancel">Cancel</button>
+        <button class="btn-primary" id="musicPwSubmit">View PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Order Export Modal -->
+  <div class="bisw-overlay" id="svcOverlay">
+    <div class="bisw-modal svc-modal">
+      <div class="svc-modal-head">
+        <div>
+          <div class="m-title" style="text-align:left;margin-bottom:2px">Export Service Order</div>
+          <div class="svc-modal-date" id="svcModalDate"></div>
+        </div>
+        <button class="svc-close-x" id="svcCloseX" title="Close">&times;</button>
+      </div>
+      <div class="svc-modal-hint">Fill in the highlighted fields, then click Download PDF.</div>
+      <div class="svc-preview" id="svcPreview"></div>
+      <div class="svc-modal-actions">
+        <button class="btn-cancel" id="svcCancel">Cancel</button>
+        <button class="btn-primary" id="svcDownload">&#8595; Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfViewerOverlay">
+    <div id="pdfViewerHdr">
+      <span id="pdfViewerTitle">Sheet Music</span>
+      <button id="pdfViewerClose">&times;</button>
+    </div>
+    <div id="pdfViewerNote">For authorized music team members only &bull; Please respect copyright</div>
+    <iframe id="pdfViewerFrame" src="" title="Sheet Music Viewer"></iframe>
+  </div>
+
+</div>
+<script>
+
+(function(){
+'use strict';
+
+const SUPABASE_URL='https://ekzvmlicfatqqceorhgz.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrenZtbGljZmF0cXFjZW9yaGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDIwNjAsImV4cCI6MjA4NjMxODA2MH0.HxULK72tX0gx2Nyo2SU7IaNDejms9UwRS0X1ovdsPU8';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const SK='bisw_v6', PW='unlock', PDF_PW='music';
+const LOGO='https://bethisraelnow.com/wp-content/uploads/2025/06/beth-israel-messianic-synagogue-jacksonville-florida-white-logo.png';
+
+/* ── SEED ── */
+const SEED={
+  groupOrder:['Service Team','Worship','Torah','Hospitality','Technical','Education'],
+  roles:[
+    {id:'r01',g:'Service Team',n:'Speaker',                  v:['David Brennan','Sarah Goldstein','Michael Torres']},
+    {id:'r02',g:'Service Team',n:'Emcee',                    v:['Rachel Cohen','James Whitfield','Naomi Stern']},
+    {id:'r1a',g:'Service Team',n:'Torah Carrier',            v:['Aaron Feldman','Samuel Okonkwo','Philip Marsh']},
+    {id:'r1b',g:'Service Team',n:'Torah Assistant',          v:['Ruth Greenbaum','Grace Thompson','Daniel Levy']},
+    {id:'r1c',g:'Service Team',n:'Service Coordinator',      v:['Rachel Cohen','Naomi Stern','Miriam Adler']},
+    {id:'r1d',g:'Service Team',n:'Facility (Lock/Unlock)',   v:['James Whitfield','Frank Guerrero','Patricia Noel']},
+    {id:'r03',g:'Worship',   n:'Worship Leader',           v:['Brian Alvarez','Eric Nakamura','Jorge Medina']},
+    {id:'r04',g:'Worship',   n:'Piano Player',             v:['Lisa Hartmann','Kevin Park','Diane Russo']},
+    {id:'r05',g:'Worship',   n:'Bass Player',              v:['Marcus Webb','Tyler Chen','Sophia Flores']},
+    {id:'r06',g:'Worship',   n:'Guitar Player',            v:['Nathan Rivers','Caleb Monroe','Priya Kapoor']},
+    {id:'r07',g:'Worship',   n:'Drummer',                  v:['Derek Santos','Amir Hassan','Leah Zimmerman']},
+    {id:'r08',g:'Worship',   n:'Backup Singers',           v:['Tiffany Moore','Carmen Delgado','Isaiah Brooks']},
+    {id:'r1e',g:'Worship',   n:'Violin',                   v:['Hannah Pierce','Abigail Stone','Emily Foster']},
+    {id:'r09',g:'Torah',     n:'Cantor',                   v:['Rabbi Yosef Klein','Miriam Adler','Benjamin Shuster']},
+    {id:'r10',g:'Torah',     n:'Torah Reader',             v:['Aaron Feldman','Ruth Greenbaum','Samuel Okonkwo']},
+    {id:'r11',g:'Torah',     n:'Haftorah Reader',          v:['Esther Rosenberg','Daniel Levy','Hannah Pierce']},
+    {id:'r12',g:'Torah',     n:'Brit Hadashah Reader',     v:['Grace Thompson','Philip Marsh','Abigail Stone']},
+    {id:'r13',g:'Technical', n:'Slides Operator',          v:['Chris Park','Emily Foster','Ryan Choi']},
+    {id:'r14',g:'Technical', n:'Sound Board Operator',     v:['Jake Serrano','Monica Reyes','Tom Nakamura']},
+    {id:'r15',g:'Technical', n:'Livestream Operator',      v:['Olivia Grant','Sean Murphy','Destiny Williams']},
+    {id:'r16',g:'Hospitality',n:'Host Team',               v:['Patricia Noel','Frank Guerrero','Sylvia Kim']},
+    {id:'r19',g:'Hospitality',n:'Oneg',                    v:['Linda Berkowitz','Mark Tanaka','Susan Goldberg']},
+    {id:'r1f',g:'Education', n:'Nursery',                     v:['Jennifer Holt','Amy Schwarzman','Carolyn Fitch']},
+    {id:'r17',g:'Education', n:'Shabbat School (Lower)',      v:['Robert Diaz','Samuel Osei','Victor Reyes']},
+    {id:'r18',g:'Education', n:'Shabbat School (Upper)',      v:['Victor Reyes','Carolyn Fitch','Samuel Osei']},
+    {id:'r1g',g:'Education', n:'Youth Group',                 v:['Samuel Osei','Robert Diaz','Jennifer Holt']},
+  ],
+  schedule:{
+    '2026-05-16':{r01:['David Brennan'],r02:['Rachel Cohen'],r03:['Brian Alvarez'],r04:['Lisa Hartmann'],r05:['Marcus Webb'],r06:['Nathan Rivers'],r07:['Derek Santos'],r08:['Tiffany Moore','Carmen Delgado'],r09:['Rabbi Yosef Klein'],r10:['Aaron Feldman'],r11:['Esther Rosenberg'],r12:['Grace Thompson'],r13:['Chris Park'],r14:['Jake Serrano'],r15:['Olivia Grant'],r16:['Patricia Noel','Frank Guerrero'],r17:['Jennifer Holt'],r18:['Victor Reyes'],r19:['Linda Berkowitz','Susan Goldberg']},
+    '2026-05-23':{r01:['Sarah Goldstein'],r02:['James Whitfield'],r03:['Eric Nakamura'],r04:['Kevin Park'],r05:['Tyler Chen'],r06:['Caleb Monroe'],r07:['Amir Hassan'],r08:['Isaiah Brooks','Tiffany Moore'],r09:['Miriam Adler'],r10:['Ruth Greenbaum'],r11:['Daniel Levy'],r12:['Philip Marsh'],r13:['Emily Foster'],r14:['Monica Reyes'],r15:['Sean Murphy'],r16:['Frank Guerrero','Sylvia Kim'],r17:['Amy Schwarzman'],r18:['Carolyn Fitch'],r19:['Mark Tanaka','Linda Berkowitz']}
+  }
+};
+
+/* ── STATE ── */
+let data=loadDataLocal(), unlocked=false, curDate=getNextSat(new Date());
+let pdfMusicUnlocked=false, pdfMusicUnlockedAt=0,
+    pendingPdfData=null, currentBlobUrl=null;
+const PDF_MUSIC_TTL=10*60*1000; // 10 minutes
+function isMusicUnlocked(){return pdfMusicUnlocked&&(Date.now()-pdfMusicUnlockedAt<PDF_MUSIC_TTL);}
+let calYear=curDate.getFullYear(), calMonth=curDate.getMonth();
+let curView='day', mwRoleId=null, mwWeeksShown=15, addRoleGrp='Other', addRoleToGrp=null;
+let pendingDel=null, openDayRowId=null, openDayDrawerEl=null;
+
+/* ── UTILS ── */
+function getNextSat(d){const n=new Date(d);n.setHours(0,0,0,0);const day=n.getDay();if(day===6)return n;n.setDate(n.getDate()+(6-day));return n;}
+function shiftWeeks(d,delta){const n=new Date(d);n.setDate(n.getDate()+delta*7);return n;}
+function toKey(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
+function p2(n){return String(n).padStart(2,'0');}
+function fmtDate(d){return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});}
+function fmtShort(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function uid(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function sortByLast(arr){
+  return [...arr].sort((a,b)=>{
+    const la=a.trim().split(' ').pop().toLowerCase();
+    const lb=b.trim().split(' ').pop().toLowerCase();
+    return la.localeCompare(lb);
+  });
+}
+// Build a two-field add-name row: returns {row, getFullName}
+function makeTwoFieldNameRow(placeholder1,placeholder2,onAdd){
+  const wrap=el('div');
+  wrap.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;';
+  const fi=el('input');fi.type='text';fi.placeholder=placeholder1||'First';fi.maxLength=30;
+  fi.style.cssText='font-family:inherit;font-size:.78rem;border:1.5px dashed rgba(27,43,75,.18);border-radius:5px;padding:5px 8px;color:#0F172A;background:#fff;min-width:70px;flex:1;outline:none;transition:border-color .13s;';
+  const li=el('input');li.type='text';li.placeholder=placeholder2||'Last';li.maxLength=30;
+  li.style.cssText=fi.style.cssText;
+  const btn=el('button');
+  btn.style.cssText='font-family:inherit;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#C4973A;border:none;border-radius:5px;padding:7px 12px;cursor:pointer;transition:background .13s;flex-shrink:0;white-space:nowrap;';
+  btn.textContent='Add';
+  btn.onmouseenter=()=>btn.style.background='#A87D28';
+  btn.onmouseleave=()=>btn.style.background='#C4973A';
+  const focusBorder=inp=>{
+    inp.onfocus=()=>{inp.style.borderStyle='solid';inp.style.borderColor='#C4973A';};
+    inp.onblur=()=>{inp.style.borderStyle='dashed';inp.style.borderColor='rgba(27,43,75,.18)';};
+  };
+  focusBorder(fi);focusBorder(li);
+  const doAdd=()=>{
+    const first=fi.value.trim(),last=li.value.trim();
+    if(!first&&!last)return;
+    const full=(first+(last?' '+last:'')).trim();
+    if(onAdd(full)){fi.value='';li.value='';fi.focus();}
+  };
+  btn.addEventListener('click',doAdd);
+  [fi,li].forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();}));
+  wrap.appendChild(fi);wrap.appendChild(li);wrap.appendChild(btn);
+  return wrap;
+}
+function $(id){return document.getElementById(id);}
+function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+
+/* ── GROUP ORDER ── */
+function getOrderedGroups(){
+  const order=data.groupOrder||[];
+  // add any groups from roles that aren't in order yet
+  data.roles.forEach(r=>{const g=r.g||'Other';if(!order.includes(g))order.push(g);});
+  data.groupOrder=order;
+  return order.filter(g=>data.roles.some(r=>(r.g||'Other')===g));
+}
+function splitGroupsToCols(groupOrder, numCols){
+  numCols=numCols||3;
+  const sz=Math.ceil(groupOrder.length/numCols), res=[];
+  for(let i=0;i<numCols;i++)res.push(groupOrder.slice(i*sz,(i+1)*sz));
+  return res;
+}
+
+/* ── STORAGE ── */
+function loadDataLocal(){
+  try{const s=localStorage.getItem(SK);if(s)return JSON.parse(s);}catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function save(){
+  try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+  sb.from('schedule_data')
+    .upsert({id:1,data:data,updated_at:new Date().toISOString()},{onConflict:'id'})
+    .then(({error})=>{if(error)console.warn('Supabase save:',error);});
+  // Hourly snapshot for restore feature
+  const lastSnap=parseInt(localStorage.getItem('bisw_last_snap')||'0',10);
+  if(Date.now()-lastSnap>60*60*1000){
+    localStorage.setItem('bisw_last_snap',String(Date.now()));
+    sb.from('schedule_history').insert({data:data})
+      .then(({error})=>{if(error)console.warn('Snapshot error:',error);});
+  }
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function render(){renderNav();renderCalendar();renderContent();}
+
+function renderNav(){
+  $('nav-date').textContent=fmtDate(curDate);
+  const lk=$('lock-btn'),tabs=$('view-tabs'),stat=$('nav-status'),bw=$('bisw');
+  // Hide export button in view-only mode (admins only)
+  $('export-wrap').style.display=unlocked?'':'none';
+  if(unlocked){
+    $('svg-locked').style.display='none';$('svg-unlocked').style.display='block';
+    lk.classList.add('open');lk.title='Click to lock';
+    tabs.classList.add('show');stat.textContent='Editing';
+    bw.classList.add('edit-mode');
+  }else{
+    $('svg-locked').style.display='block';$('svg-unlocked').style.display='none';
+    lk.classList.remove('open');lk.title='Click to unlock';
+    tabs.classList.remove('show');stat.textContent='View only';
+    bw.classList.remove('edit-mode');
+    if(curView!=='day')switchView('day');
+  }
+}
+
+function switchView(v){
+  curView=v;
+  // Remove any inline display style from view-day first so CSS can take over
+  $('view-day').style.display         = v==='day'       ? 'flex' : 'none';
+  $('view-multiweek').style.display   = v==='multiweek' ? 'flex' : 'none';
+  $('view-manage').style.display      = v==='manage'    ? ''     : 'none';
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  renderContent();
+}
+function renderContent(){
+  if(curView==='day')renderDayView();
+  else if(curView==='multiweek')renderMultiWeekView();
+  else if(curView==='manage')renderManageView();
+}
+
+/* ── DAY VIEW ── */
+function renderDayView(){
+  const wrap=$('view-day');wrap.innerHTML='';
+  const key=toKey(curDate),sched=data.schedule[key]||{};
+  const groups=getOrderedGroups();
+  const cols=splitGroupsToCols(groups,2); // 2 col role grid
+
+  /* ── Schedule grid (left) ── */
+  const schedGrid=el('div','schedule-grid');
+  const colNodes=[el('div','role-col'),el('div','role-col')];
+
+  cols.forEach((grpNames,ci)=>{
+    grpNames.forEach(grpName=>{
+      const gh=el('div','grp-hdr');gh.dataset.group=grpName;
+      if(unlocked){
+        const dh=makeDragHandleEl();dh.title='Drag to reorder group';
+        dh.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();beginGroupDrag(e,grpName,gh);});
+        gh.appendChild(dh);
+      }
+      const lbl=el('span','grp-hdr-label');lbl.textContent=grpName;
+      gh.appendChild(lbl);
+      colNodes[ci].appendChild(gh);
+      data.roles.filter(r=>(r.g||'Other')===grpName).forEach(role=>{
+        colNodes[ci].appendChild(buildRoleRow(role,sched[role.id]||[],key));
+      });
+    });
+    colNodes[ci].appendChild(el('div','col-fill'));
+    schedGrid.appendChild(colNodes[ci]);
+  });
+
+  /* ── Service panel (right) ── */
+  const svcPanel=buildServicePanel(key);
+
+  wrap.appendChild(schedGrid);
+  wrap.appendChild(svcPanel);
+  if(unlocked)applyRoleDragHandles();
+}
+
+function buildRoleRow(role,assigned,key){
+  const row=el('div','role-row');row.dataset.rid=role.id;
+  if(!assigned||!assigned.length)row.classList.add('unassigned-row');
+  const rn=el('div','rname');rn.textContent=role.n;
+  const ld=el('div','leader');
+  const vd=el('div','rvols');refreshVols(vd,assigned);
+  const ca=el('span','row-caret');ca.textContent='›';
+  row.appendChild(rn);row.appendChild(ld);row.appendChild(vd);row.appendChild(ca);
+  if(unlocked)row.addEventListener('click',()=>toggleDayDrawer(role.id,row,key));
+  return row;
+}
+
+function refreshVols(container,names){
+  container.innerHTML='';
+  if(!names||!names.length){const u=el('span','unassigned');u.textContent='Not assigned';container.appendChild(u);return;}
+  names.forEach((name,i)=>{
+    if(i>0){const sep=el('span','vol-sep');sep.textContent='·';container.appendChild(sep);}
+    const n=el('span','vol-name');n.textContent=name;container.appendChild(n);
+  });
+}
+
+/* Day inline drawer */
+function toggleDayDrawer(roleId,row,key){
+  if(openDayDrawerEl){
+    openDayDrawerEl.remove();openDayDrawerEl=null;
+    document.querySelectorAll('.role-row.active').forEach(r=>r.classList.remove('active'));
+    if(openDayRowId===roleId){openDayRowId=null;return;}
+  }
+  openDayRowId=roleId;row.classList.add('active');
+  const role=data.roles.find(r=>r.id===roleId);if(!role)return;
+  const panel=buildDayPanel(role,key);
+  row.after(panel);openDayDrawerEl=panel;
+}
+
+function buildDayPanel(role,key){
+  const panel=el('div');
+  panel.style.cssText='background:#F8FAFC;border-bottom:1px solid rgba(27,43,75,0.08);padding:14px 20px 16px;animation:panelIn .16s ease';
+  if(!$('_panKF')){const s=document.createElement('style');s.id='_panKF';s.textContent='@keyframes panelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}';document.head.appendChild(s);}
+  const assigned=(data.schedule[key]||{})[role.id]||[];
+
+  const lbl=el('div');lbl.style.cssText='font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6B7FA0;margin-bottom:9px';
+  lbl.textContent='Assign Volunteers';panel.appendChild(lbl);
+
+  const list=el('div');list.style.cssText='display:flex;flex-direction:column;gap:2px;margin-bottom:12px';
+  sortByLast(role.v).forEach(volName=>{
+    const item=el('div');item.style.cssText='display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;transition:background .11s;cursor:pointer';
+    item.onmouseenter=()=>item.style.background='rgba(27,43,75,0.04)';item.onmouseleave=()=>item.style.background='';
+    const cbId='cb_'+role.id+'_'+volName.replace(/\W/g,'_');
+    const cb=el('input','bisw-cb');cb.type='checkbox';cb.id=cbId;cb.checked=assigned.includes(volName);
+    cb.addEventListener('change',()=>{
+      if(!data.schedule[key])data.schedule[key]={};
+      if(!data.schedule[key][role.id])data.schedule[key][role.id]=[];
+      const arr=data.schedule[key][role.id];
+      if(cb.checked){if(!arr.includes(volName))arr.push(volName);}else{data.schedule[key][role.id]=arr.filter(n=>n!==volName);}
+      save();
+      const rv=document.querySelector('[data-rid="'+role.id+'"] .rvols');
+      if(rv)refreshVols(rv,data.schedule[key][role.id]||[]);
+      // Refresh unassigned-row class on the parent row
+      const pr=document.querySelector('[data-rid="'+role.id+'"]');
+      if(pr){
+        const has=(data.schedule[key][role.id]||[]).length>0;
+        pr.classList.toggle('unassigned-row',!has);
+      }
+    });
+    const lbl2=el('label');lbl2.htmlFor=cbId;lbl2.style.cssText='flex:1;font-size:.86rem;font-weight:500;color:#1E293B;cursor:pointer';lbl2.textContent=volName;
+    item.appendChild(cb);item.appendChild(lbl2);list.appendChild(item);
+  });
+  panel.appendChild(list);
+
+  const addRow=el('div');addRow.style.cssText='margin-top:4px';
+  const twoField=makeTwoFieldNameRow('First name','Last name',full=>{
+    if(!full||role.v.includes(full))return false;
+    role.v.push(full);save();
+    const newPanel=buildDayPanel(role,key);panel.replaceWith(newPanel);openDayDrawerEl=newPanel;
+    return true;
+  });
+  addRow.appendChild(twoField);panel.appendChild(addRow);
+  return panel;
+}
+
+function closeDayDrawer(){
+  if(openDayDrawerEl){openDayDrawerEl.remove();openDayDrawerEl=null;}
+  openDayRowId=null;
+  document.querySelectorAll('.role-row.active').forEach(r=>r.classList.remove('active'));
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   SERVICE PANEL — Songs, Announcements, Prayer
+   ════════════════════════════════════════════════════════════ */
+
+function getSvcData(key){
+  if(!data.schedule[key])data.schedule[key]={};
+  const sc=data.schedule[key];
+  if(!sc._songs)sc._songs={
+    opening:[{title:'',pdf:null,pdfName:''}],
+    parade:[{title:'',pdf:null,pdfName:''}],
+    worship:[{title:'',pdf:null,pdfName:''},{title:'',pdf:null,pdfName:''},{title:'',pdf:null,pdfName:''}]
+  };
+  // Migrate: if any category stored as plain object (legacy), convert to array
+  ['opening','parade','worship'].forEach(cat=>{
+    if(sc._songs[cat]&&!Array.isArray(sc._songs[cat])){
+      sc._songs[cat]=[sc._songs[cat]];
+    }
+  });
+  if(sc._announcements===undefined)sc._announcements='';
+  if(sc._prayer===undefined)sc._prayer='';
+  if(!sc._svcOrder)sc._svcOrder={msgTitle:'',parsha:'',torahRef:'',haftorahRef:'',britRef:'',seudat:false};
+  return sc;
+}
+
+function pdfUploadSVG(){
+  return '<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    +'<path d="M7 1v8M4 5l3-4 3 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    +'<path d="M1 11h12v2H1z" fill="currentColor" opacity=".25"/>'
+    +'<path d="M1 11h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+}
+
+function pdfHasSVG(){
+  // Download arrow icon shown in view mode when PDF present
+  return '<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    +'<path d="M7 1v8M4 9l3 4 3-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    +'<path d="M1 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+}
+
+function buildServicePanel(key){
+  const panel=el('div','');panel.id='service-panel';
+  panel.appendChild(buildSongsCard(key));
+  if(unlocked){
+    panel.appendChild(buildLockedCard(key,'_announcements','Announcements','\uD83D\uDCE2','svc-locked-body'));
+    panel.appendChild(buildLockedCard(key,'_prayer','Prayer Requests','\uD83D\uDE4F','svc-prayer-body'));
+  }
+  return panel;
+}
+
+function refreshServicePanel(key){
+  const ex=$('service-panel');
+  if(ex)ex.replaceWith(buildServicePanel(key));
+}
+
+function buildSongsCard(key){
+  const svc=getSvcData(key);
+  const card=el('div','svc-songs');
+
+  const hdr=el('div','svc-hdr');
+  const icon=el('span','svc-hdr-icon');icon.textContent='\uD83C\uDFB5';
+  const title=el('div','svc-hdr-title');title.textContent='Songs & Music';
+  hdr.appendChild(icon);hdr.appendChild(title);
+  card.appendChild(hdr);
+
+  card.appendChild(buildSongGroup(svc,'opening',key,'Opening Song',1,4));
+  card.appendChild(buildSongGroup(svc,'parade',key,'Torah Parade Song',1,4));
+  card.appendChild(buildSongGroup(svc,'worship',key,'Worship Set',3,6));
+
+  /* Download All button — only if at least one PDF exists */
+  const allPdfs=getAllSongPdfs(svc);
+  if(allPdfs.length>=1){
+    const wrap=el('div','svc-dl-all-wrap');
+    const dlAll=el('button','pdf-dl-all-btn');
+    const label='Download All PDFs'+(allPdfs.length>1?' ('+allPdfs.length+' files)':'');
+    dlAll.innerHTML=pdfHasSVG()+' '+label;
+    dlAll.addEventListener('click',()=>downloadAllPdfs(allPdfs,svc));
+    wrap.appendChild(dlAll);
+    card.appendChild(wrap);
+  }
+
+  return card;
+}
+
+function getAllSongPdfs(svc){
+  const pdfs=[];
+  const add=s=>{if(s&&s.pdf)pdfs.push({name:s.pdfName||'Sheet Music',data:s.pdf});};
+  (svc._songs.opening||[]).forEach(add);
+  (svc._songs.parade||[]).forEach(add);
+  (svc._songs.worship||[]).forEach(add);
+  return pdfs;
+}
+
+function buildSongGroup(svc,cat,key,label,minSlots,maxSlots){
+  const grp=el('div','song-group');
+  // All categories are arrays
+  const isArr=true;
+  const rawItems=svc._songs[cat];
+  const items=Array.isArray(rawItems)?rawItems:(rawItems?[rawItems]:[]);
+  // Pluralize "Song" → "Songs" when count >= 2. In edit mode count slots; in view mode count filled songs.
+  let displayLabel=label;
+  if(/\bSong$/.test(label)){
+    const count=unlocked?items.length:items.filter(s=>s.title||s.pdf).length;
+    if(count>=2)displayLabel=label+'s';
+  }
+  const lbl=el('span','song-group-lbl');lbl.textContent=displayLabel;
+  grp.appendChild(lbl);
+
+  let visibleCount=0;
+  items.forEach((song,idx)=>{
+    // In view mode, skip empty songs
+    if(!unlocked&&!song.title&&!song.pdf)return;
+    grp.appendChild(buildSongRow(song,key,cat,idx,isArr,items,svc,grp,label,minSlots,maxSlots));
+    visibleCount++;
+  });
+
+  // In view mode, show "None selected" placeholder if no songs filled in
+  if(!unlocked&&visibleCount===0){
+    const emptyRow=el('div','song-row');
+    const span=el('span','song-title-empty');
+    span.textContent='None selected';
+    emptyRow.appendChild(span);
+    grp.appendChild(emptyRow);
+  }
+
+  // In edit mode, show "Add Song" if under maxSlots
+  if(unlocked&&isArr&&items.length<maxSlots){
+    const addBtn=el('button','song-add-btn');
+    addBtn.textContent='+ Add Song';
+    addBtn.addEventListener('click',()=>{
+      svc._songs[cat].push({title:'',pdf:null,pdfName:''});
+      save();refreshServicePanel(key);
+    });
+    grp.appendChild(addBtn);
+  }
+
+  return grp;
+}
+
+function buildSongRow(song,key,cat,idx,isArr,items,svc,grp,label,minSlots,maxSlots){
+  const row=el('div','song-row');
+
+  if(unlocked){
+    const inp=el('input','song-title-input');
+    inp.type='text';inp.value=song.title||'';
+    inp.placeholder='Song title\u2026';inp.maxLength=80;
+    inp.addEventListener('input',()=>{song.title=inp.value;save();});
+    row.appendChild(inp);
+
+    if(song.pdf){
+      /* Has PDF: view button + remove PDF button */
+      const viewBtn=el('button','pdf-icon-btn has');
+      viewBtn.innerHTML='<svg viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="13" height="13"><rect x="1" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 5.5h7M3.5 8.5h7M3.5 11.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+      viewBtn.title='View PDF: '+song.pdfName;
+      viewBtn.addEventListener('click',()=>openPdfViewer(song.pdf,song.pdfName));
+      row.appendChild(viewBtn);
+      const rmPdf=el('button','pdf-rm-btn');rmPdf.innerHTML='&times;';rmPdf.title='Remove PDF';
+      rmPdf.addEventListener('click',()=>{song.pdf=null;song.pdfName='';save();refreshServicePanel(key);});
+      row.appendChild(rmPdf);
+    }else{
+      /* No PDF: upload button */
+      const upBtn=el('button','pdf-upload-btn');
+      upBtn.innerHTML=pdfUploadSVG()+' Upload PDF';
+      upBtn.title='Upload sheet music PDF';
+      upBtn.addEventListener('click',()=>triggerPdfUpload(song,key));
+      row.appendChild(upBtn);
+    }
+
+    /* Remove-song button (only for array categories above minSlots) */
+    if(isArr&&items.length>minSlots){
+      const rmBtn=el('button','song-rm-btn');rmBtn.innerHTML='&times;';rmBtn.title='Remove this song';
+      rmBtn.addEventListener('click',()=>{
+        svc._songs[cat].splice(idx,1);save();refreshServicePanel(key);
+      });
+      row.appendChild(rmBtn);
+    }
+  }else{
+    /* View mode */
+    if(song.title){
+      const txt=el('span','song-title-view');txt.textContent=song.title;row.appendChild(txt);
+    }
+    if(song.pdf){
+      const dlBtn=el('button','pdf-dl-btn');
+      dlBtn.innerHTML=pdfHasSVG();
+      dlBtn.title='View / download sheet music (password required)';
+      dlBtn.addEventListener('click',()=>requestPdfAccess(song.pdf,song.pdfName));
+      row.appendChild(dlBtn);
+    }
+  }
+  return row;
+}
+
+/* ── Rich-text editor for announcements & prayer ── */
+function buildLockedCard(key,field,title,icon,bodyClass){
+  const card=el('div','svc-locked-card');
+  const hdr=el('div','svc-locked-hdr');
+  const ic=el('span','svc-locked-icon');ic.textContent=icon;
+  const ti=el('div','svc-locked-title');ti.textContent=title;
+  hdr.appendChild(ic);hdr.appendChild(ti);card.appendChild(hdr);
+
+  const body=el('div','svc-locked-body');
+  if(bodyClass&&bodyClass.includes('prayer'))body.classList.add('svc-prayer-body');
+  const svc=getSvcData(key);
+
+  const toolbar=el('div','rte-toolbar');
+  const rteEl=el('div','rte-editor');
+  rteEl.contentEditable='true';
+  rteEl.setAttribute('placeholder','Enter '+title.toLowerCase()+'\u2026');
+  rteEl.innerHTML=svc[field]||'';
+
+  const mkBtn=(label,cmd,val)=>{
+    const b=el('button','rte-btn');b.type='button';
+    b.innerHTML=label;b.title=cmd;
+    b.addEventListener('mousedown',e=>{
+      e.preventDefault();rteEl.focus();
+      document.execCommand(cmd,false,val||null);
+    });
+    toolbar.appendChild(b);
+  };
+  mkBtn('<strong>B</strong>','bold');
+  mkBtn('<u>U</u>','underline');
+  mkBtn('&#8226; List','insertUnorderedList');
+  mkBtn('1. List','insertOrderedList');
+
+  rteEl.addEventListener('input',()=>{svc[field]=rteEl.innerHTML;save();});
+  rteEl.addEventListener('blur',()=>{svc[field]=rteEl.innerHTML;save();});
+
+  body.appendChild(toolbar);body.appendChild(rteEl);
+  card.appendChild(body);
+  return card;
+}
+
+/* ── PDF upload ── */
+function triggerPdfUpload(songRef,key){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.pdf,application/pdf';
+  inp.addEventListener('change',()=>{
+    const file=inp.files[0];if(!file)return;
+    // Strict PDF validation: require PDF MIME type OR .pdf extension (some browsers don't set MIME)
+    const isPdfMime=file.type==='application/pdf';
+    const isPdfExt=/\.pdf$/i.test(file.name);
+    if(!isPdfMime&&!isPdfExt){
+      showToast('Only PDF files are allowed',true);
+      return;
+    }
+    if(file.size>2*1024*1024){showToast('PDF too large (max 2MB)',true);return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const dataUrl=e.target.result;
+      // Final guard: verify the file actually starts with the PDF magic bytes (%PDF-)
+      // dataUrl looks like "data:application/pdf;base64,JVBERi0..." — JVBERi0 = "%PDF-"
+      if(!/^data:.*;base64,JVBERi0/.test(dataUrl)){
+        showToast('File is not a valid PDF',true);
+        return;
+      }
+      songRef.pdf=dataUrl;songRef.pdfName=file.name;
+      save();refreshServicePanel(key);showToast('PDF uploaded \u2713');
+    };
+    reader.readAsDataURL(file);
+  });
+  inp.click();
+}
+
+/* ── PDF access gate ── */
+function requestPdfAccess(pdfData,pdfName){
+  if(isMusicUnlocked()||unlocked){openPdfViewer(pdfData,pdfName);}
+  else{
+    pendingPdfData={data:pdfData,name:pdfName};
+    $('musicPwInput').value='';$('musicPwErr').classList.remove('show');
+    $('musicPwOverlay').classList.add('open');
+    setTimeout(()=>$('musicPwInput').focus(),60);
+  }
+}
+
+function tryMusicUnlock(){
+  if($('musicPwInput').value===PDF_PW){
+    pdfMusicUnlocked=true;pdfMusicUnlockedAt=Date.now();$('musicPwOverlay').classList.remove('open');
+    if(pendingPdfData==='__dlall__'){
+      pendingPdfData=null;
+      const svc=getSvcData(toKey(curDate));
+      downloadAllPdfs(getAllSongPdfs(svc),svc);
+    }else if(pendingPdfData){
+      openPdfViewer(pendingPdfData.data,pendingPdfData.name);pendingPdfData=null;
+    }
+  }else{
+    $('musicPwErr').classList.add('show');$('musicPwInput').value='';$('musicPwInput').focus();
+  }
+}
+
+function openPdfViewer(pdfData,pdfName){
+  try{
+    const parts=pdfData.split(',');
+    const mime=parts[0].match(/:(.*?);/)[1];
+    const bin=atob(parts[1]);const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const blob=new Blob([bytes],{type:mime});
+    if(currentBlobUrl)URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl=URL.createObjectURL(blob);
+    $('pdfViewerFrame').src=currentBlobUrl;
+    $('pdfViewerTitle').textContent=pdfName||'Sheet Music';
+    $('pdfViewerOverlay').classList.add('open');
+  }catch(e){showToast('Could not open PDF',true);}
+}
+
+function closePdfViewer(){
+  $('pdfViewerOverlay').classList.remove('open');
+  $('pdfViewerFrame').src='';
+  if(currentBlobUrl){URL.revokeObjectURL(currentBlobUrl);currentBlobUrl=null;}
+}
+
+/* ── Download All PDFs merged ── */
+async function downloadAllPdfs(pdfList,svc){
+  if(!(isMusicUnlocked()||unlocked)){
+    pendingPdfData='__dlall__';
+    $('musicPwInput').value='';$('musicPwErr').classList.remove('show');
+    $('musicPwOverlay').classList.add('open');
+    setTimeout(()=>$('musicPwInput').focus(),60);
+    return;
+  }
+  if(typeof PDFLib==='undefined'){showToast('PDF library loading\u2026',false);return;}
+  showToast('Merging PDFs\u2026');
+  try{
+    const {PDFDocument}=PDFLib;
+    const merged=await PDFDocument.create();
+    for(const item of pdfList){
+      try{
+        const parts=item.data.split(',');
+        const bin=atob(parts[1]);
+        const bytes=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+        const srcDoc=await PDFDocument.load(bytes);
+        const pages=await merged.copyPages(srcDoc,srcDoc.getPageIndices());
+        pages.forEach(p=>merged.addPage(p));
+      }catch(e){console.warn('Skipping PDF:',item.name,e);}
+    }
+    const bytes=await merged.save();
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='shabbat-sheet-music-'+toKey(curDate)+'.pdf';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    showToast('Downloaded '+pdfList.length+' PDFs \u2713');
+  }catch(e){showToast('Merge failed',true);console.error(e);}
+}
+
+
+/* ── CALENDAR ── */
+function renderCalendar(){
+  $('cal-month-lbl').textContent=new Date(calYear,calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const grid=$('cal-grid');grid.innerHTML='';
+  const first=new Date(calYear,calMonth,1),dim=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date();today.setHours(0,0,0,0);
+  const selK=toKey(curDate);
+  for(let i=0;i<first.getDay();i++)grid.appendChild(el('div','cal-cell'));
+  for(let d=1;d<=dim;d++){
+    const date=new Date(calYear,calMonth,d),dow=date.getDay();
+    const cell=el('div','cal-cell');cell.textContent=d;
+    if(dow===6){
+      cell.classList.add('is-sat');
+      if(toKey(date)===selK)cell.classList.add('sel');
+      if(date<today)cell.classList.add('past');
+      cell.addEventListener('click',()=>{curDate=date;closeDayDrawer();closeMobileCal();render();});
+    }
+    grid.appendChild(cell);
+  }
+}
+
+/* ── MULTI-WEEK VIEW ── */
+function renderMultiWeekView(){
+  const list=$('mw-role-list');list.innerHTML='';
+  const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
+  getOrderedGroups().forEach(grpName=>{
+    if(!grps[grpName])return;
+    const gh=el('div','mw-role-group-hdr');gh.textContent=grpName;list.appendChild(gh);
+    grps[grpName].forEach(role=>{
+      const item=el('div','mw-role-item');item.textContent=role.n;item.dataset.rid=role.id;
+      if(role.id===mwRoleId)item.classList.add('selected');
+      item.addEventListener('click',()=>{mwRoleId=role.id;mwWeeksShown=15;renderMultiWeekView();});
+      list.appendChild(item);
+    });
+  });
+  const area=$('mw-grid-area');area.innerHTML='';
+  if(!mwRoleId){const e2=el('div','mw-empty');e2.textContent='Select a role to schedule across multiple weeks.';area.appendChild(e2);return;}
+  const role=data.roles.find(r=>r.id===mwRoleId);if(!role)return;
+  const title=el('div','mw-role-title');title.textContent=role.n;area.appendChild(title);
+  const sats=[];for(let i=0;i<mwWeeksShown;i++)sats.push(shiftWeeks(curDate,i));
+  const table=el('table','mw-table');
+  const thead=el('thead'),hr=el('tr');
+  const dt=el('th');dt.textContent='Saturday';hr.appendChild(dt);
+  sortByLast(role.v).forEach(vol=>{
+    const th=el('th');
+    const parts=vol.trim().split(/\s+/);
+    const first=parts[0]||'';
+    const last=parts.slice(1).join(' ');
+    th.appendChild(document.createTextNode(first));
+    if(last){th.appendChild(document.createElement('br'));th.appendChild(document.createTextNode(last));}
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);table.appendChild(thead);
+  const tbody=el('tbody');
+  sats.forEach(sat=>{
+    const key=toKey(sat),assigned=(data.schedule[key]||{})[role.id]||[];
+    const tr=el('tr');
+    const dtd=el('td');dtd.textContent=fmtShort(sat);tr.appendChild(dtd);
+    sortByLast(role.v).forEach(vol=>{
+      const td=el('td');const wrap=el('div','mw-cb-wrap');
+      const cbId='mw_'+role.id+'_'+key+'_'+vol.replace(/\W/g,'_');
+      const cb=el('input','bisw-cb');cb.type='checkbox';cb.id=cbId;cb.checked=assigned.includes(vol);
+      cb.addEventListener('change',()=>{
+        if(!data.schedule[key])data.schedule[key]={};
+        if(!data.schedule[key][role.id])data.schedule[key][role.id]=[];
+        const arr=data.schedule[key][role.id];
+        if(cb.checked){if(!arr.includes(vol))arr.push(vol);}else{data.schedule[key][role.id]=arr.filter(n=>n!==vol);}
+        save();if(curView==='day')renderDayView();
+      });
+      const lbl=el('label');lbl.htmlFor=cbId;lbl.style.cssText='cursor:pointer;display:flex;align-items:center;justify-content:center';
+      lbl.appendChild(cb);wrap.appendChild(lbl);td.appendChild(wrap);tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);area.appendChild(table);
+
+  // Show More button — always visible so user can keep loading more weeks
+  const btn=el('button','mw-show-more-btn');
+  btn.textContent='Show More \u2193';
+  btn.addEventListener('click',()=>{
+    mwWeeksShown+=10;
+    renderMultiWeekView();
+    setTimeout(()=>{ const a=$('mw-grid-area');if(a)a.scrollTop=a.scrollHeight; },50);
+  });
+  area.appendChild(btn);
+}
+
+/* ── MANAGE ROLES VIEW ── */
+function renderManageView(){
+  const wrap=$('view-manage');wrap.innerHTML='';
+  const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
+  getOrderedGroups().forEach(grpName=>{
+    if(!grps[grpName])return;
+    const block=el('div','manage-group-block');
+    const hdr=el('div','manage-group-hdr');hdr.dataset.group=grpName;
+    if(unlocked){
+      const dh=makeDragHandleEl();dh.title='Drag to reorder group';
+      dh.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();beginGroupDrag(e,grpName,hdr);});
+      hdr.appendChild(dh);
+    }
+    // Editable group name
+    const gnInp=el('input','manage-group-name-input');
+    gnInp.value=grpName;gnInp.title='Click to rename group';
+    gnInp.addEventListener('blur',()=>{
+      const nv=gnInp.value.trim();
+      if(nv&&nv!==grpName){
+        data.roles.forEach(r=>{if((r.g||'Other')===grpName)r.g=nv;});
+        const oi=data.groupOrder.indexOf(grpName);if(oi>=0)data.groupOrder[oi]=nv;
+        save();renderManageView();
+      }else gnInp.value=grpName;
+    });
+    gnInp.addEventListener('keydown',e=>{if(e.key==='Enter')gnInp.blur();if(e.key==='Escape'){gnInp.value=grpName;gnInp.blur();}});
+    hdr.appendChild(gnInp);
+    const addBtn=el('button','btn-add-role-to-grp');addBtn.textContent='+ Add Role';
+    addBtn.addEventListener('click',()=>openAddRoleModal(grpName));
+    hdr.appendChild(addBtn);block.appendChild(hdr);
+    grps[grpName].forEach(role=>block.appendChild(buildManageRow(role)));
+    wrap.appendChild(block);
+  });
+  const addGrpBtn=el('button','btn-add-new-group');addGrpBtn.textContent='+ Add New Ministry Group';
+  addGrpBtn.addEventListener('click',()=>$('addGrpOverlay').classList.add('open'));
+  wrap.appendChild(addGrpBtn);
+  if(unlocked)applyRoleDragHandles();
+}
+
+function buildManageRow(role){
+  const row=el('div','manage-role-row');row.dataset.rid=role.id;
+  const nameInp=el('input','manage-role-name-input');
+  nameInp.type='text';nameInp.value=role.n;nameInp.maxLength=60;nameInp.title='Click to edit';
+  nameInp.addEventListener('blur',()=>{const v=nameInp.value.trim();if(v&&v!==role.n){role.n=v;save();}else nameInp.value=role.n;});
+  nameInp.addEventListener('keydown',e=>{if(e.key==='Enter')nameInp.blur();if(e.key==='Escape'){nameInp.value=role.n;nameInp.blur();}});
+  const volsWrap=el('div','manage-role-vols');
+  const renderChips=()=>{
+    volsWrap.innerHTML='';
+    sortByLast(role.v).forEach(vol=>{
+      const chip=el('div','vol-chip');chip.appendChild(document.createTextNode(vol));
+      const del=el('button','chip-del');del.innerHTML='&times;';del.title='Remove '+vol;
+      del.addEventListener('click',()=>openConfirm('Remove "'+vol+'" from '+role.n+'?','',()=>{
+        role.v=role.v.filter(n=>n!==vol);
+        Object.keys(data.schedule).forEach(dk=>{if(data.schedule[dk][role.id])data.schedule[dk][role.id]=data.schedule[dk][role.id].filter(n=>n!==vol);});
+        save();renderChips();
+      }));
+      chip.appendChild(del);volsWrap.appendChild(chip);
+    });
+    // Minimalist add: trigger button reveals first/last fields
+    const addWrap=el('div','manage-add-vol');
+    const triggerBtn=el('button','manage-add-trigger');triggerBtn.textContent='+ Add volunteer';
+    const addForm=el('div','manage-add-form');
+    const fi=el('input','manage-add-field');fi.type='text';fi.placeholder='First name';fi.maxLength=30;
+    const li=el('input','manage-add-field');li.type='text';li.placeholder='Last name';li.maxLength=30;
+    const saveBtn=el('button','manage-add-save');saveBtn.textContent='Add';
+    const cancelBtn=el('button','manage-add-cancel');cancelBtn.textContent='Cancel';
+    const openForm=()=>{addForm.classList.add('open');triggerBtn.style.display='none';fi.focus();};
+    const closeForm=()=>{addForm.classList.remove('open');triggerBtn.style.display='';fi.value='';li.value='';};
+    const doSave=()=>{
+      const first=fi.value.trim(),last=li.value.trim();
+      if(!first&&!last)return;
+      const full=(first+(last?' '+last:'')).trim();
+      if(role.v.includes(full)){fi.style.borderColor='#C0392B';setTimeout(()=>fi.style.borderColor='',800);return;}
+      role.v.push(full);save();closeForm();renderChips();
+    };
+    triggerBtn.addEventListener('click',openForm);
+    saveBtn.addEventListener('click',doSave);
+    cancelBtn.addEventListener('click',closeForm);
+    [fi,li].forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter')doSave();if(e.key==='Escape')closeForm();}));
+    addForm.appendChild(fi);addForm.appendChild(li);addForm.appendChild(saveBtn);addForm.appendChild(cancelBtn);
+    addWrap.appendChild(triggerBtn);addWrap.appendChild(addForm);
+    volsWrap.appendChild(addWrap);
+  };
+  renderChips();
+  const acts=el('div','manage-role-actions');
+  const delBtn=el('button','btn-del-role-sm');delBtn.textContent='Delete role';
+  delBtn.addEventListener('click',()=>openConfirm(
+    'Delete "'+role.n+'"?',
+    '\u26A0\uFE0F This will permanently remove this role from ALL weeks. All volunteer assignments for this role will be lost and cannot be recovered. Are you sure you want to do this?',
+    ()=>{
+      data.roles=data.roles.filter(r=>r.id!==role.id);
+      Object.keys(data.schedule).forEach(dk=>delete data.schedule[dk][role.id]);
+      save();renderManageView();
+    }
+  ));
+  acts.appendChild(delBtn);row.appendChild(nameInp);row.appendChild(volsWrap);row.appendChild(acts);
+  return row;
+}
+
+/* ================================================================
+   DRAG & DROP — Smooth FLIP sort
+   The real element becomes position:fixed (CSS fully preserved).
+   A placeholder reserves space. FLIP animates siblings into place.
+   ================================================================ */
+
+const HANDLE_SVG='<svg viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="1.5" r="1.3"/><circle cx="7" cy="1.5" r="1.3"/><circle cx="3" cy="5.5" r="1.3"/><circle cx="7" cy="5.5" r="1.3"/><circle cx="3" cy="9.5" r="1.3"/><circle cx="7" cy="9.5" r="1.3"/><circle cx="3" cy="13.5" r="1.3"/><circle cx="7" cy="13.5" r="1.3"/></svg>';
+
+function makeDragHandleEl(){const h=el('div','drag-handle');h.innerHTML=HANDLE_SVG;return h;}
+
+/* ── FLIP: record → DOM change → animate ── */
+function flipRecord(els){
+  return els.map(e=>({e,y:e.getBoundingClientRect().top}));
+}
+function flipPlay(snaps){
+  snaps.forEach(({e,y})=>{
+    const ny=e.getBoundingClientRect().top, d=y-ny;
+    if(Math.abs(d)>0.5){e.style.transition='none';e.style.transform='translateY('+d+'px)';}
+  });
+  if(snaps.length)snaps[0].e.getBoundingClientRect(); // force reflow
+  snaps.forEach(({e})=>{
+    if(e.style.transform){
+      e.style.transition='transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94)';
+      e.style.transform='';
+      e.addEventListener('transitionend',()=>{e.style.transition='';e.style.transform='';},{once:true});
+    }
+  });
+}
+
+function clearHints(){document.querySelectorAll('.drag-over-hint').forEach(x=>x.classList.remove('drag-over-hint'));}
+
+function makePlaceholder(h){
+  const ph=el('div','drag-placeholder');ph.style.height=h+'px';return ph;
+}
+
+/* ════════════════════════════════════════
+   ROLE DRAG
+   ════════════════════════════════════════ */
+let roleDrag=null;
+
+function applyRoleDragHandles(){
+  document.querySelectorAll('.role-row[data-rid],.manage-role-row[data-rid]').forEach(row=>{
+    if(row.querySelector('.drag-handle'))return;
+    const h=makeDragHandleEl();h.title='Drag to reorder';
+    h.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();beginRoleDrag(e,row.dataset.rid,row);});
+    row.insertBefore(h,row.firstChild);
+  });
+}
+
+function beginRoleDrag(e,roleId,rowEl){
+  const rect=rowEl.getBoundingClientRect();
+  const ph=makePlaceholder(rect.height);
+  rowEl.after(ph); // placeholder stays in the flow
+
+  // Make the REAL element the ghost — position:fixed keeps it inside .role-col
+  // so every CSS selector (.role-col .role-row .rname etc.) still applies
+  rowEl.style.cssText='position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;'
+    +'width:'+rect.width+'px;height:'+rect.height+'px;'
+    +'z-index:9999;pointer-events:none;'
+    +'box-shadow:0 8px 32px rgba(15,23,42,0.22);';
+
+  roleDrag={roleId,rowEl,ph,
+    ox:e.clientX-rect.left, oy:e.clientY-rect.top, lastTid:null};
+
+  document.addEventListener('pointermove',onRoleDragMove,{passive:false});
+  document.addEventListener('pointerup',onRoleDragEnd);
+  document.addEventListener('pointercancel',onRoleDragEnd);
+}
+
+function getGroupRows(roleId){
+  const role=data.roles.find(r=>r.id===roleId);
+  const grp=(role&&role.g)||'Other';
+  return [...document.querySelectorAll('[data-rid]')].filter(row=>{
+    if(row===(roleDrag&&roleDrag.rowEl))return false;
+    const r=data.roles.find(dr=>dr.id===row.dataset.rid);
+    return r&&(r.g||'Other')===grp;
+  });
+}
+
+function onRoleDragMove(e){
+  if(!roleDrag)return; e.preventDefault();
+  const rowEl=roleDrag.rowEl,ph=roleDrag.ph,roleId=roleDrag.roleId,ox=roleDrag.ox,oy=roleDrag.oy;
+
+  // Ghost follows cursor exactly
+  rowEl.style.left=(e.clientX-ox)+'px';
+  rowEl.style.top=(e.clientY-oy)+'px';
+
+  clearHints();
+
+  const under=document.elementFromPoint(e.clientX,e.clientY);
+  const target=under&&under.closest('.role-row[data-rid],.manage-role-row[data-rid]');
+  if(!target||target===rowEl)return;
+
+  const tRole=data.roles.find(r=>r.id===target.dataset.rid);
+  const dRole=data.roles.find(r=>r.id===roleId);
+  if(!tRole||!dRole||tRole.g!==dRole.g)return;
+  if(roleDrag.lastTid===target.dataset.rid)return; // no re-animate same target
+
+  roleDrag.lastTid=target.dataset.rid;
+  target.classList.add('drag-over-hint');
+
+  const sibs=[...getGroupRows(roleId),ph];
+  const snaps=flipRecord(sibs);
+  const mid=target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
+  if(e.clientY<mid)target.before(ph); else target.after(ph);
+  flipPlay(snaps);
+}
+
+function onRoleDragEnd(){
+  if(!roleDrag)return;
+  const rowEl=roleDrag.rowEl,ph=roleDrag.ph; clearHints();
+  rowEl.style.cssText=''; // restore to normal flow
+  ph.replaceWith(rowEl);  // drop in place of placeholder
+  syncRoleOrderFromDOM();
+  roleDrag=null;
+  document.removeEventListener('pointermove',onRoleDragMove);
+  document.removeEventListener('pointerup',onRoleDragEnd);
+  document.removeEventListener('pointercancel',onRoleDragEnd);
+  save(); renderContent();
+}
+
+function syncRoleOrderFromDOM(){
+  const seen=new Set(),nr=[];
+  document.querySelectorAll('[data-rid]').forEach(row=>{
+    const role=data.roles.find(r=>r.id===row.dataset.rid);
+    if(role&&!seen.has(role.id)){seen.add(role.id);nr.push(role);}
+  });
+  data.roles.forEach(r=>{if(!seen.has(r.id))nr.push(r);});
+  data.roles=nr;
+}
+
+/* ════════════════════════════════════════
+   GROUP DRAG — header + all role rows move as one unit
+   ════════════════════════════════════════ */
+let grpDrag=null;
+
+function beginGroupDrag(e,grpName,hdrEl){
+  e.preventDefault(); e.stopPropagation();
+
+  const manageBlock=hdrEl.closest('.manage-group-block');
+  let ghost, groupEls=null, rect;
+
+  if(manageBlock){
+    /* Manage view: lift the whole block */
+    rect=manageBlock.getBoundingClientRect();
+    const ph=makePlaceholder(rect.height);
+    manageBlock.after(ph);
+    manageBlock.style.cssText='position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;'
+      +'width:'+rect.width+'px;z-index:9999;pointer-events:none;'
+      +'box-shadow:0 8px 32px rgba(15,23,42,0.22);';
+    ghost=manageBlock;
+    grpDrag={grpName:grpName,ghost:ghost,ph:ph,groupEls:null,
+      ox:e.clientX-rect.left,oy:e.clientY-rect.top,lastTg:null};
+  }else{
+    /* Day view: wrap header + role rows in a transparent flex container */
+    const parent=hdrEl.parentElement;
+    const siblings=[...parent.children];
+    const hi=siblings.indexOf(hdrEl);
+    groupEls=[hdrEl];
+    for(let i=hi+1;i<siblings.length;i++){
+      const s=siblings[i];
+      if(s.classList.contains('grp-hdr')||s.classList.contains('col-fill'))break;
+      groupEls.push(s);
+    }
+    const firstR=groupEls[0].getBoundingClientRect();
+    const lastR=groupEls[groupEls.length-1].getBoundingClientRect();
+    const totalH=lastR.bottom-firstR.top;
+    rect={left:firstR.left,top:firstR.top,width:firstR.width};
+
+    /* Wrapper — lives inside .role-col so CSS cascade is preserved for children */
+    const wrapper=el('div','group-drag-unit');
+    wrapper.dataset.group=grpName;
+    parent.insertBefore(wrapper,hdrEl);
+    groupEls.forEach(c=>wrapper.appendChild(c));
+
+    const ph=makePlaceholder(totalH);
+    wrapper.after(ph);
+    wrapper.style.cssText='position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;'
+      +'width:'+rect.width+'px;z-index:9999;pointer-events:none;'
+      +'box-shadow:0 8px 32px rgba(15,23,42,0.22);';
+    ghost=wrapper;
+    grpDrag={grpName:grpName,ghost:ghost,ph:ph,groupEls:groupEls,
+      ox:e.clientX-rect.left,oy:e.clientY-rect.top,lastTg:null};
+  }
+
+  document.addEventListener('pointermove',onGrpDragMove,{passive:false});
+  document.addEventListener('pointerup',onGrpDragEnd);
+  document.addEventListener('pointercancel',onGrpDragEnd);
+}
+
+function getGroupSiblings(ghost){
+  /* All draggable group-level elements except the ghost and placeholder */
+  const ph=grpDrag&&grpDrag.ph;
+  return [...document.querySelectorAll('.grp-hdr[data-group],.manage-group-block,.group-drag-unit')]
+    .filter(x=>x!==ghost&&x!==ph);
+}
+
+function onGrpDragMove(e){
+  if(!grpDrag)return; e.preventDefault();
+  const ghost=grpDrag.ghost,ph=grpDrag.ph,grpName=grpDrag.grpName,ox=grpDrag.ox,oy=grpDrag.oy;
+
+  // Ghost follows cursor
+  ghost.style.left=(e.clientX-ox)+'px';
+  ghost.style.top=(e.clientY-oy)+'px';
+
+  clearHints();
+
+  const under=document.elementFromPoint(e.clientX,e.clientY);
+  const target=under&&under.closest('.grp-hdr[data-group],.manage-group-block,.group-drag-unit');
+  if(!target||target===ghost||target===ph)return;
+
+  const tGrp=target.dataset.group
+    ||(target.classList.contains('manage-group-block')
+       ?(target.querySelector('[data-group]')&&target.querySelector('[data-group]').dataset.group):null);
+  if(!tGrp||tGrp===grpName)return;
+  if(grpDrag.lastTg===tGrp)return;
+
+  grpDrag.lastTg=tGrp;
+  target.classList.add('drag-over-hint');
+
+  const sibs=[...getGroupSiblings(ghost),ph];
+  const snaps=flipRecord(sibs);
+
+  const rect=target.getBoundingClientRect();
+  const mid=rect.top+rect.height/2;
+  if(e.clientY<mid){
+    target.before(ph);
+  }else{
+    // After target — for .grp-hdr skip over its member role rows
+    if(target.classList.contains('grp-hdr')){
+      let next=target.nextElementSibling;
+      while(next&&!next.classList.contains('grp-hdr')
+            &&!next.classList.contains('col-fill')
+            &&!next.classList.contains('group-drag-unit')
+            &&next!==ph){
+        next=next.nextElementSibling;
+      }
+      if(next)next.before(ph);
+      else target.parentElement.lastElementChild.before(ph);
+    }else{
+      target.after(ph);
+    }
+  }
+  flipPlay(snaps);
+}
+
+function onGrpDragEnd(){
+  if(!grpDrag)return;
+  const ghost=grpDrag.ghost,ph=grpDrag.ph,groupEls=grpDrag.groupEls; clearHints();
+
+  ghost.style.cssText=''; // clear fixed positioning
+
+  if(groupEls){
+    // Day view: move wrapper to where placeholder is, then unwrap
+    ph.before(ghost);
+    ph.remove();
+    ghost.replaceWith(...groupEls);
+  }else{
+    // Manage view: move block to placeholder position
+    ph.replaceWith(ghost);
+  }
+
+  syncGroupOrderFromDOM();
+  grpDrag=null;
+  document.removeEventListener('pointermove',onGrpDragMove);
+  document.removeEventListener('pointerup',onGrpDragEnd);
+  document.removeEventListener('pointercancel',onGrpDragEnd);
+  save(); renderContent();
+}
+
+function syncGroupOrderFromDOM(){
+  const seen=new Set(),no=[];
+  document.querySelectorAll('[data-group]').forEach(x=>{
+    const g=x.dataset.group;if(g&&!seen.has(g)){seen.add(g);no.push(g);}
+  });
+  if(no.length)data.groupOrder=[...no];
+}
+
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+function showToast(msg,isErr){
+  const t=el('div');
+  t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:'+(isErr?'#C0392B':'#1B2B4B')+';color:#fff;padding:11px 22px;border-radius:9px;font-family:inherit;font-size:.84rem;font-weight:600;letter-spacing:.02em;box-shadow:0 8px 28px rgba(15,23,42,.28);z-index:99999;pointer-events:none;white-space:nowrap;animation:toastIn .2s ease';
+  t.textContent=msg;
+  if(!$('_tkf')){const s=document.createElement('style');s.id='_tkf';s.textContent='@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';document.head.appendChild(s);}
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),310);},2600);
+}
+
+/* ================================================================
+   EXPORT — TEXT
+   ================================================================ */
+function buildTextSchedule(key){
+  const parts=key.split('-'),y=+parts[0],m=+parts[1],d=+parts[2];
+  const dateStr=new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const sched=data.schedule[key]||{};
+  const lines=[
+    'Beth Israel Messianic Synagogue',
+    'Shabbat Service  |  '+dateStr,
+    '',
+  ];
+  const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
+  getOrderedGroups().forEach(grpName=>{
+    if(!grps[grpName])return;
+    lines.push('[ '+grpName.toUpperCase()+' ]');
+    grps[grpName].forEach(role=>{
+      const assigned=sched[role.id]||[];
+      const vol=assigned.length?assigned.join(', '):'\u2014';
+      lines.push('  '+role.n+':  '+vol);
+    });
+    lines.push('');
+  });
+  // Songs
+  const svcD=getSvcData(toKey(curDate));
+  const songs=svcD._songs;
+  lines.push('[ SONGS & MUSIC ]');
+  (songs.opening||[]).forEach((s,i)=>{if(s.title)lines.push('  Opening Song'+((songs.opening.length>1)?' '+(i+1):'')+':  '+s.title);});
+  (songs.parade||[]).forEach((s,i)=>{if(s.title)lines.push('  Torah Parade'+((songs.parade.length>1)?' '+(i+1):'')+':  '+s.title);});
+  (songs.worship||[]).forEach((s,i)=>{if(s.title)lines.push('  Worship Set '+(i+1)+':  '+s.title);});
+  lines.push('');
+  lines.push('bethisraelnow.com');
+  return lines.join('\n');
+}
+
+async function copyAsText(){
+  const text=buildTextSchedule(toKey(curDate));
+  try{await navigator.clipboard.writeText(text);}
+  catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:-9999px;top:0;font-size:16px';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');ta.remove();}
+  showToast('Copied to clipboard \u2713');
+}
+
+/* ================================================================
+   EXPORT — PDF
+   ================================================================ */
+function openPdfModal(){
+  const list=$('pdf-week-list');list.innerHTML='';
+  for(let i=0;i<12;i++){
+    const sat=shiftWeeks(curDate,i),key=toKey(sat);
+    const hasData=data.schedule[key]&&Object.keys(data.schedule[key]).some(k=>(data.schedule[key][k]||[]).length>0);
+    const label=document.createElement('label');label.className='pdf-week-item';
+    const cb=document.createElement('input');cb.type='checkbox';cb.value=key;cb.checked=(i===0);
+    const info=el('div');
+    info.innerHTML='<div class="pdf-wk-date">'+sat.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+'</div><div class="pdf-wk-status '+(hasData?'has':'none')+'">'+(hasData?'Schedule set':'No schedule set')+'</div>';
+    label.appendChild(cb);label.appendChild(info);list.appendChild(label);
+  }
+  $('pdfOverlay').classList.add('open');
+}
+
+function buildPrintDoc(weekKeys){
+  const pages=weekKeys.map(key=>{
+    const parts=key.split('-'),y=+parts[0],m=+parts[1],d=+parts[2];
+    const dateStr=new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const sched=data.schedule[key]||{};
+    const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
+    const grpHTML=getOrderedGroups().filter(g=>grps[g]).map(grpName=>{
+      const rowsHTML=grps[grpName].map(role=>{
+        const assigned=sched[role.id]||[];
+        const vol=assigned.length?assigned.join(', '):'\u2014';
+        const cls=assigned.length?'vn':'vn-empty';
+        return'<div class="rl"><div class="rn">'+role.n+'</div><div class="dots"></div><div class="'+cls+'">'+vol+'</div></div>';
+      }).join('');
+      return'<div class="grp"><div class="gh">'+grpName+'</div>'+rowsHTML+'</div>';
+    }).join('');
+    return'<div class="pg"><div class="ph"><div class="org">Beth Israel Messianic Synagogue</div><div class="stag">Shabbat Service Schedule</div><div class="dt">'+dateStr+'</div></div><div class="grid">'+grpHTML+'</div><div class="pf">bethisraelnow.com &bull; Jacksonville, Florida</div></div>';
+  }).join('\n');
+  return'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Shabbat Schedule</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Lato:wght@400;700&display=swap" rel="stylesheet">'
+    +'<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}@page{size:letter;margin:.65in .75in}body{font-family:\'Lato\',sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{page-break-after:always;padding:0}.pg:last-child{page-break-after:auto}.ph{text-align:center;padding-bottom:18px;margin-bottom:22px;border-bottom:2.5px solid #C4973A}.org{font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700;color:#1B2B4B}.stag{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:5px}.dt{font-family:\'Playfair Display\',serif;font-size:14px;font-style:italic;color:#555;margin-top:7px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 28px}.grp{break-inside:avoid}.gh{font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#fff;background:#1B2B4B;padding:6px 10px}.rl{display:flex;align-items:center;padding:6px 10px;border-bottom:1px solid rgba(27,43,75,.08)}.rl:last-child{border-bottom:none}.rn{font-family:\'Playfair Display\',serif;font-size:10.5px;font-weight:600;color:#1B2B4B;min-width:130px;flex-shrink:0}.dots{flex:1;height:1px;margin:0 7px;background-image:repeating-linear-gradient(90deg,rgba(27,43,75,.22) 0,rgba(27,43,75,.22) 2px,transparent 2px,transparent 5px)}.vn{font-size:10px;font-weight:700;color:#7C5C1A;text-align:right}.vn-empty{font-size:9.5px;font-style:italic;color:#bbb;text-align:right}.pf{text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid rgba(27,43,75,.1);font-size:8px;color:#aaa;letter-spacing:.1em;text-transform:uppercase}@media screen{body{max-width:820px;margin:32px auto;padding:32px}.pg{border:1px solid #ddd;padding:36px;margin-bottom:28px;border-radius:4px}}</style></head>'
+    +'<body>'+pages+'<script>window.addEventListener(\'load\',()=>setTimeout(()=>window.print(),400));<\/script></body></html>';
+}
+
+/* ================================================================
+   EXPORT — JPEG
+   ================================================================ */
+function buildImageCard(){
+  const key=toKey(curDate),sched=data.schedule[key]||{};
+  const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
+  const dateStr=curDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const grpHTML=getOrderedGroups().filter(g=>grps[g]).map(grpName=>{
+    const roleRows=grps[grpName].map(role=>{
+      const assigned=sched[role.id]||[];
+      const vol=assigned.length?assigned.join(', '):'\u2014';
+      return'<div style="display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(27,43,75,.07)"><div style="font-family:Georgia,serif;font-size:13px;font-weight:600;color:#1B2B4B;min-width:158px;flex-shrink:0">'+role.n+'</div><div style="flex:1;height:1px;background-image:repeating-linear-gradient(90deg,rgba(27,43,75,.18) 0,rgba(27,43,75,.18) 2px,transparent 2px,transparent 6px)"></div><div style="font-size:12.5px;font-weight:700;color:#7C5C1A;padding-left:8px">'+vol+'</div></div>';
+    }).join('');
+    return'<div style="margin-bottom:14px"><div style="font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#fff;background:#1B2B4B;padding:7px 14px">'+grpName+'</div>'+roleRows+'</div>';
+  }).join('');
+  const card=el('div');
+  card.style.cssText='position:fixed;left:-9999px;top:0;width:660px;background:#fff;font-family:Lato,sans-serif;padding:36px 40px 30px;box-sizing:border-box';
+  card.innerHTML='<div style="text-align:center;padding-bottom:18px;margin-bottom:22px;border-bottom:2.5px solid #C4973A"><div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:#1B2B4B">Beth Israel Messianic Synagogue</div><div style="font-size:9.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:5px">Shabbat Service Schedule</div><div style="font-family:Georgia,serif;font-size:15px;font-style:italic;color:#555;margin-top:7px">'+dateStr+'</div></div>'+grpHTML+'<div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid rgba(27,43,75,.1);font-size:9px;color:#aaa;letter-spacing:.1em;text-transform:uppercase">bethisraelnow.com &bull; Jacksonville, Florida</div>';
+  document.body.appendChild(card);return card;
+}
+
+async function exportJPEG(){
+  if(typeof html2canvas==='undefined'){showToast('Image library not loaded',true);return;}
+  showToast('Generating image\u2026');
+  const card=buildImageCard();
+  try{
+    const canvas=await html2canvas(card,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const link=document.createElement('a');link.download='shabbat-schedule-'+toKey(curDate)+'.jpg';
+    link.href=canvas.toDataURL('image/jpeg',.93);link.click();
+  }catch(e){showToast('Image export failed',true);}
+  finally{card.remove();}
+}
+
+/* ================================================================
+   EXPORT — SERVICE ORDER
+   ================================================================ */
+
+// Escape HTML for safe insertion of user-typed text
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+// Find a role by exact name, with fallback to fuzzy match
+function findRoleByName(...names){
+  for(const n of names){
+    const r=data.roles.find(rr=>rr.n===n);
+    if(r)return r;
+  }
+  for(const n of names){
+    const ln=n.toLowerCase();
+    const r=data.roles.find(rr=>rr.n.toLowerCase().includes(ln)||ln.includes(rr.n.toLowerCase()));
+    if(r)return r;
+  }
+  return null;
+}
+
+// Return comma-joined assigned name(s) for a role, or '—' if none/missing
+function getAssignedFor(sched,...names){
+  const r=findRoleByName(...names);
+  if(!r)return '\u2014';
+  const a=sched[r.id]||[];
+  return a.length?a.join(', '):'\u2014';
+}
+
+// Build worship-set bullet list, with optional Seudat HaMashiach insertion
+function buildWorshipBullets(worshipSongs,seudat,asHtml){
+  const titles=(worshipSongs||[]).map(s=>s.title).filter(t=>t&&t.trim());
+  const lines=[];
+  if(seudat){
+    if(titles.length===0){
+      lines.push({txt:'Seudat HaMashiach',seudat:true});
+    }else{
+      lines.push({txt:titles[0]});
+      lines.push({txt:'Seudat HaMashiach',seudat:true});
+      titles.slice(1).forEach(t=>lines.push({txt:t}));
+    }
+  }else{
+    titles.forEach(t=>lines.push({txt:t}));
+  }
+  return lines;
+}
+
+// Build the 9 rows of the service order (data only — rendering done per-context)
+function buildServiceOrderRows(key,opts){
+  const sched=data.schedule[key]||{};
+  const svc=getSvcData(key);
+  const worshipLeader=getAssignedFor(sched,'Worship Leader');
+  const emcee=getAssignedFor(sched,'Emcee');
+  const cantor=getAssignedFor(sched,'Cantor');
+  const torahCarrier=getAssignedFor(sched,'Torah Carrier');
+  const torahAssistant=getAssignedFor(sched,'Torah Assistant');
+  const torahReader=getAssignedFor(sched,'Torah Reader');
+  const haftorahReader=getAssignedFor(sched,'Haftorah Reader');
+  const britReader=getAssignedFor(sched,'Brit Hadashah Reader','B\'rit HaChadasha Reader','Brit Chadashah Reader');
+  const speaker=getAssignedFor(sched,'Speaker');
+  return {
+    worshipLeader,emcee,cantor,torahCarrier,torahAssistant,
+    torahReader,haftorahReader,britReader,speaker,
+    openingSongs:svc._songs.opening||[],
+    paradeSongs:svc._songs.parade||[],
+    worshipSongs:svc._songs.worship||[],
+    announcements:svc._announcements||'',
+    prayer:svc._prayer||''
+  };
+}
+
+/* ── Service Order: in-modal preview ── */
+let svcCurKey=null;
+
+function openSvcOrderModal(){
+  svcCurKey=toKey(curDate);
+  const svc=getSvcData(svcCurKey);
+  $('svcModalDate').textContent=fmtDate(curDate);
+  renderSvcPreview();
+  $('svcOverlay').classList.add('open');
+}
+
+function getSvcOrderFields(){
+  // Read current values from the inputs in the preview (if open),
+  // otherwise fall back to saved values
+  const svc=getSvcData(svcCurKey);
+  const o=svc._svcOrder||{};
+  return {
+    msgTitle:    ($('svc-msgTitle')   ||{value:o.msgTitle    ||''}).value,
+    parsha:      ($('svc-parsha')     ||{value:o.parsha      ||''}).value,
+    torahRef:    ($('svc-torahRef')   ||{value:o.torahRef    ||''}).value,
+    haftorahRef: ($('svc-haftorahRef')||{value:o.haftorahRef ||''}).value,
+    britRef:     ($('svc-britRef')    ||{value:o.britRef     ||''}).value,
+    seudat:      ($('svc-seudat')     ||{checked:!!o.seudat}).checked
+  };
+}
+
+function saveSvcOrderFields(){
+  const svc=getSvcData(svcCurKey);
+  svc._svcOrder={...svc._svcOrder,...getSvcOrderFields()};
+  save();
+}
+
+function renderSvcPreview(){
+  const pv=$('svcPreview');
+  const ctx=buildServiceOrderRows(svcCurKey);
+  const svc=getSvcData(svcCurKey);
+  const o=svc._svcOrder;
+
+  // Helper to render song bullets (in HTML)
+  const songBullets=(songs)=>{
+    const titles=(songs||[]).map(s=>s.title).filter(t=>t&&t.trim());
+    if(!titles.length)return '<span class="svc-song-empty">(none entered)</span>';
+    return titles.map(t=>'<span class="svc-song-bullet">'+escHtml(t)+'</span>').join('');
+  };
+
+  // Count filled songs in a category (for plural label)
+  const songsCount=(songs)=>(songs||[]).filter(s=>s.title&&s.title.trim()).length;
+
+  // Pipe-separated inline list for compact liturgy items
+  const pipeListPv=(items)=>items.join('<span class="pipe-sep">|</span>');
+
+  // Worship set as a 3-column grid with Seudat HaMashiach + checkbox
+  const worshipGridHtml=()=>{
+    const titles=ctx.worshipSongs.map(s=>s.title).filter(t=>t&&t.trim());
+    const checked=o.seudat?' checked':'';
+    const items=[];
+    if(o.seudat){
+      if(titles.length===0){
+        items.push('<div class="ws-item-pv seudat">Seudat HaMashiach</div>');
+      }else{
+        items.push('<div class="ws-item-pv">'+escHtml(titles[0])+'</div>');
+        items.push('<div class="ws-item-pv seudat">Seudat HaMashiach</div>');
+        titles.slice(1).forEach(t=>items.push('<div class="ws-item-pv">'+escHtml(t)+'</div>'));
+      }
+    }else{
+      titles.forEach(t=>items.push('<div class="ws-item-pv">'+escHtml(t)+'</div>'));
+    }
+    const gridHtml=items.length
+      ?'<div class="ws-grid-pv">'+items.join('')+'</div>'
+      :'<div class="svc-song-empty">(no songs entered)</div>';
+    return gridHtml+'<label class="svc-seudat-row"><input type="checkbox" id="svc-seudat"'+checked+'> Include <strong>Seudat HaMashiach</strong> this week</label>';
+  };
+
+  const annContent=svc._announcements&&svc._announcements.trim()
+    ?'<div class="ap-content-pv">'+svc._announcements+'</div>'
+    :'<div class="ap-content-pv"><em class="empty">No announcements entered. Add them in the service panel before exporting.</em></div>';
+  const prayContent=svc._prayer&&svc._prayer.trim()
+    ?'<div class="ap-content-pv">'+svc._prayer+'</div>'
+    :'<div class="ap-content-pv"><em class="empty">No prayer requests entered. Add them in the service panel before exporting.</em></div>';
+
+  // Conditional plural for Opening Song(s) label
+  const openLblPv=(songsCount(ctx.openingSongs)>=2)?'Opening Songs':'Opening Song';
+
+  // Build the preview
+  pv.innerHTML=
+    '<table class="svc-pv-table">'
+      +'<thead><tr>'
+        +'<th class="col-who">Who</th>'
+        +'<th class="col-when">When</th>'
+        +'<th class="col-min">Min</th>'
+        +'<th>What</th>'
+      +'</tr></thead>'
+      +'<tbody>'
+        // Row 1: Opening Song(s)
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.worshipLeader)+'</td>'
+          +'<td class="cell-when">10:30&ndash;10:33</td>'
+          +'<td class="cell-min">3</td>'
+          +'<td class="cell-what"><strong>'+openLblPv+':</strong>'+songBullets(ctx.openingSongs)+'</td>'
+        +'</tr>'
+        // Row 2: Welcome | Opening Prayer
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.emcee)+'</td>'
+          +'<td class="cell-when">10:33&ndash;10:34</td>'
+          +'<td class="cell-min">1</td>'
+          +'<td class="cell-what">'+pipeListPv(['Welcome','Opening Prayer'])+'</td>'
+        +'</tr>'
+        // Row 3: Cantor solo
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.cantor)+'</td>'
+          +'<td class="cell-when">10:34&ndash;10:43</td>'
+          +'<td class="cell-min">9</td>'
+          +'<td class="cell-what">'+pipeListPv(['Barchoo','Blessing of Messiah','V\u2019shamroo','Shema','V\u2019ahavta','V\u2019ahavta L\u2019rayacha'])+'</td>'
+        +'</tr>'
+        // Row 4: Cantor + Music Team
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.cantor)+'</td>'
+          +'<td class="cell-when">10:43&ndash;10:48</td>'
+          +'<td class="cell-min">5</td>'
+          +'<td class="cell-what">'+pipeListPv(['Ahvot','G\u2019vorah'])+'</td>'
+        +'</tr>'
+        // Row 5: Torah Procession — Cantor name + inline Torah Lifter / Escort labels
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.cantor)
+            +'<div class="role-pair-pv"><span class="role-pair-pv-lbl">Torah Lifter:</span> '+escHtml(ctx.torahCarrier)+'</div>'
+            +'<div class="role-pair-pv"><span class="role-pair-pv-lbl">Torah Escort:</span> '+escHtml(ctx.torahAssistant)+'</div>'
+          +'</td>'
+          +'<td class="cell-when">10:48&ndash;10:58</td>'
+          +'<td class="cell-min">10</td>'
+          +'<td class="cell-what">'+pipeListPv(['Ayn Kamocha','V\u2019yhee ben soah'])+'<div style="margin-top:5px"><strong>Torah Procession:</strong>'+songBullets(ctx.paradeSongs)+'</div></td>'
+        +'</tr>'
+        // Row 6: Torah Service — readers on separate lines, blessings pipe-separated
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.cantor)+'</td>'
+          +'<td class="cell-when">10:58&ndash;11:18</td>'
+          +'<td class="cell-min">20</td>'
+          +'<td class="cell-what">'
+            +'<strong>Torah Service \u2014</strong> <input type="text" class="svc-input" id="svc-parsha" placeholder="Parsha name" value="'+escHtml(o.parsha)+'">'
+            +'<br>Y\u2019mod'
+            +'<br>Torah: '+escHtml(ctx.torahReader)
+            +'<br>Haftorah: '+escHtml(ctx.haftorahReader)
+            +'<br>B\u2019rit HaChadasha: '+escHtml(ctx.britReader)
+            +'<br>Torah Opening Blessing<span class="pipe-sep">|</span><input type="text" class="svc-input svc-input-sm" id="svc-torahRef" placeholder="scripture ref" value="'+escHtml(o.torahRef)+'"><span class="pipe-sep">|</span>Torah Closing'
+            +'<br>V\u2019zote HaTorah'
+            +'<br>Haftorah Opening<span class="pipe-sep">|</span><input type="text" class="svc-input svc-input-sm" id="svc-haftorahRef" placeholder="scripture ref" value="'+escHtml(o.haftorahRef)+'"><span class="pipe-sep">|</span>Haftorah Closing'
+            +'<br>B\u2019rit HaChadasha Opening<span class="pipe-sep">|</span><input type="text" class="svc-input svc-input-sm" id="svc-britRef" placeholder="scripture ref" value="'+escHtml(o.britRef)+'"><span class="pipe-sep">|</span>B\u2019rit HaChadasha Closing'
+            +'<br>Aytz Chayeem He'
+          +'</td>'
+        +'</tr>'
+        // Row 7: Worship set
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.worshipLeader)+'</td>'
+          +'<td class="cell-when">11:18&ndash;11:48</td>'
+          +'<td class="cell-min">30</td>'
+          +'<td class="cell-what"><strong>Song Set:</strong>'+worshipGridHtml()+'<div style="margin-top:6px">Dismiss Children for Shabbat School</div></td>'
+        +'</tr>'
+        // Row 8: Closing liturgy (Emcee — compact pipe-list)
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.emcee)+'</td>'
+          +'<td class="cell-when">11:48&ndash;11:53</td>'
+          +'<td class="cell-min">5</td>'
+          +'<td class="cell-what">'+pipeListPv(['Mourner\u2019s Kaddish','Prayer Requests','Announcements'])+'</td>'
+        +'</tr>'
+        // Row 9: Message
+        +'<tr>'
+          +'<td class="cell-who">'+escHtml(ctx.speaker)+'</td>'
+          +'<td class="cell-when">11:53&ndash;12:28</td>'
+          +'<td class="cell-min">35</td>'
+          +'<td class="cell-what">'
+            +'<strong>Title:</strong> <input type="text" class="svc-input" id="svc-msgTitle" placeholder="Sermon / message title" value="'+escHtml(o.msgTitle)+'">'
+            +'<br>Close: Aaronic Benediction'
+          +'</td>'
+        +'</tr>'
+      +'</tbody>'
+    +'</table>'
+    +'<div class="svc-pv-ap-boxes">'
+      +'<div class="svc-pv-ap-box">'
+        +'<h4>Prayer Requests</h4>'
+        +prayContent
+      +'</div>'
+      +'<div class="svc-pv-ap-box">'
+        +'<h4>Announcements</h4>'
+        +annContent
+      +'</div>'
+    +'</div>';
+
+  // Wire up live-update of preview when Seudat checkbox toggles
+  const seudatCb=$('svc-seudat');
+  if(seudatCb){
+    seudatCb.addEventListener('change',()=>{
+      const svc=getSvcData(svcCurKey);
+      // Save inputs first so we don't lose them on re-render
+      svc._svcOrder={...svc._svcOrder,...getSvcOrderFields()};
+      save();
+      renderSvcPreview();
+    });
+  }
+  // Auto-save on input
+  ['svc-msgTitle','svc-parsha','svc-torahRef','svc-haftorahRef','svc-britRef'].forEach(id=>{
+    const inp=$(id);
+    if(inp)inp.addEventListener('input',()=>{
+      const svc=getSvcData(svcCurKey);
+      svc._svcOrder={...svc._svcOrder,...getSvcOrderFields()};
+      save();
+    });
+  });
+}
+
+function closeSvcOrderModal(){
+  $('svcOverlay').classList.remove('open');
+  svcCurKey=null;
+}
+
+/* ── Service Order: build print HTML ── */
+function buildServiceOrderDoc(key,opts){
+  const parts=key.split('-'),y=+parts[0],m=+parts[1],d=+parts[2];
+  const dateObj=new Date(y,m-1,d);
+  const dateStr=dateObj.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const ctx=buildServiceOrderRows(key);
+
+  // Pipe-separated inline list for compact liturgy items
+  const pipeListPdf=(items)=>items.join('<span class="pipe-sep">|</span>');
+
+  // Song bullets HTML
+  const songsBullets=(songs)=>{
+    const titles=(songs||[]).map(s=>s.title).filter(t=>t&&t.trim());
+    if(!titles.length)return '<div class="empty">\u2014</div>';
+    return '<ul class="songs">'+titles.map(t=>'<li>'+escHtml(t)+'</li>').join('')+'</ul>';
+  };
+  // Count filled songs in a category (for plural label)
+  const songsCount=(songs)=>(songs||[]).filter(s=>s.title&&s.title.trim()).length;
+  // Worship set as a multi-column grid; optional Seudat HaMashiach inserted between songs 1 and 2
+  const worshipGrid=()=>{
+    const titles=ctx.worshipSongs.map(s=>s.title).filter(t=>t&&t.trim());
+    const items=[];
+    if(opts.seudat){
+      if(titles.length===0){
+        items.push('<div class="ws-item seudat">Seudat HaMashiach</div>');
+      }else{
+        items.push('<div class="ws-item">'+escHtml(titles[0])+'</div>');
+        items.push('<div class="ws-item seudat">Seudat HaMashiach</div>');
+        titles.slice(1).forEach(t=>items.push('<div class="ws-item">'+escHtml(t)+'</div>'));
+      }
+    }else{
+      titles.forEach(t=>items.push('<div class="ws-item">'+escHtml(t)+'</div>'));
+    }
+    if(items.length===0)return '<div class="empty">\u2014</div>';
+    return '<div class="ws-grid">'+items.join('')+'</div>';
+  };
+
+  const parsha=opts.parsha&&opts.parsha.trim()?'<span class="filled">'+escHtml(opts.parsha)+'</span>':'<span class="empty-fld">[Parsha name]</span>';
+  const msgTitle=opts.msgTitle&&opts.msgTitle.trim()?'<span class="filled">'+escHtml(opts.msgTitle)+'</span>':'<span class="empty-fld">[Message title]</span>';
+  const torahRef=opts.torahRef&&opts.torahRef.trim()?'<span class="filled">'+escHtml(opts.torahRef)+'</span>':'<span class="empty-fld">[reference]</span>';
+  const haftorahRef=opts.haftorahRef&&opts.haftorahRef.trim()?'<span class="filled">'+escHtml(opts.haftorahRef)+'</span>':'<span class="empty-fld">[reference]</span>';
+  const britRef=opts.britRef&&opts.britRef.trim()?'<span class="filled">'+escHtml(opts.britRef)+'</span>':'<span class="empty-fld">[reference]</span>';
+
+  const announcements=ctx.announcements&&ctx.announcements.trim()
+    ?ctx.announcements
+    :'<em class="none">No announcements.</em>';
+  const prayer=ctx.prayer&&ctx.prayer.trim()
+    ?ctx.prayer
+    :'<em class="none">No prayer requests.</em>';
+
+  // Conditional plural for the Opening Song(s) label
+  const openLbl=(songsCount(ctx.openingSongs)>=2)?'Opening Songs':'Opening Song';
+
+  // Build the table rows for page 1
+  const rows=[
+    {who:ctx.worshipLeader,when:'10:30 \u2013 10:33',min:3,
+     what:'<strong>'+openLbl+':</strong>'+songsBullets(ctx.openingSongs)},
+    {who:ctx.emcee,when:'10:33 \u2013 10:34',min:1,
+     what:pipeListPdf(['Welcome','Opening Prayer'])},
+    {who:ctx.cantor,when:'10:34 \u2013 10:43',min:9,
+     what:pipeListPdf(['Barchoo','Blessing of Messiah','V\u2019shamroo','Shema','V\u2019ahavta','V\u2019ahavta L\u2019rayacha'])},
+    {who:ctx.cantor,when:'10:43 \u2013 10:48',min:5,
+     what:pipeListPdf(['Ahvot','G\u2019vorah'])},
+    {who:ctx.cantor,
+     subextra:'<div class="role-pair"><span class="role-pair-lbl">Torah Lifter:</span> '+escHtml(ctx.torahCarrier)+'</div>'
+             +'<div class="role-pair"><span class="role-pair-lbl">Torah Escort:</span> '+escHtml(ctx.torahAssistant)+'</div>',
+     when:'10:48 \u2013 10:58',min:10,
+     what:pipeListPdf(['Ayn Kamocha','V\u2019yhee ben soah'])
+         +'<div style="margin-top:5px"><strong>Torah Procession:</strong>'+songsBullets(ctx.paradeSongs)+'</div>'},
+    {who:ctx.cantor,when:'10:58 \u2013 11:18',min:20,
+     what:'<strong>Torah Service \u2014</strong> '+parsha
+         +'<br>Y\u2019mod'
+         +'<br>Torah: '+escHtml(ctx.torahReader)
+         +'<br>Haftorah: '+escHtml(ctx.haftorahReader)
+         +'<br>B\u2019rit HaChadasha: '+escHtml(ctx.britReader)
+         +'<br>Torah Opening Blessing<span class="pipe-sep">|</span>'+torahRef+'<span class="pipe-sep">|</span>Torah Closing'
+         +'<br>V\u2019zote HaTorah'
+         +'<br>Haftorah Opening<span class="pipe-sep">|</span>'+haftorahRef+'<span class="pipe-sep">|</span>Haftorah Closing'
+         +'<br>B\u2019rit HaChadasha Opening<span class="pipe-sep">|</span>'+britRef+'<span class="pipe-sep">|</span>B\u2019rit HaChadasha Closing'
+         +'<br>Aytz Chayeem He'},
+    {who:ctx.worshipLeader,when:'11:18 \u2013 11:48',min:30,
+     what:'<strong>Song Set:</strong>'+worshipGrid()+'<div class="dismiss">Dismiss Children for Shabbat School</div>'},
+    {who:ctx.emcee,when:'11:48 \u2013 11:53',min:5,
+     what:pipeListPdf(['Mourner\u2019s Kaddish','Prayer Requests','Announcements'])},
+    {who:ctx.speaker,when:'11:53 \u2013 12:28',min:35,
+     what:'<strong>Title:</strong> '+msgTitle+'<br>Close: Aaronic Benediction'}
+  ];
+
+  let rowsHtml='';
+  rows.forEach((r,i)=>{
+    rowsHtml+='<tr>'
+      +'<td class="c-who"><div class="who-name">'+escHtml(r.who)+'</div>'
+        +(r.subextra||'')+'</td>'
+      +'<td class="c-when">'+r.when+'</td>'
+      +'<td class="c-min">'+r.min+'</td>'
+      +'<td class="c-what">'+r.what+'</td>'
+    +'</tr>';
+  });
+
+  // Prayer Requests & Announcements: two side-by-side boxes below the table
+  const apBoxesHtml=''
+    +'<div class="ap-boxes">'
+      +'<div class="ap-box">'
+        +'<div class="ap-box-title">Prayer Requests</div>'
+        +'<div class="ap-box-content">'+prayer+'</div>'
+      +'</div>'
+      +'<div class="ap-box">'
+        +'<div class="ap-box-title">Announcements</div>'
+        +'<div class="ap-box-content">'+announcements+'</div>'
+      +'</div>'
+    +'</div>';
+
+  // Page 2: People serving today, by ministry group
+  const groupedRoles={};
+  data.roles.forEach(r=>{const g=r.g||'Other';(groupedRoles[g]=groupedRoles[g]||[]).push(r);});
+  const sched=data.schedule[key]||{};
+  const page2Html=getOrderedGroups().filter(g=>groupedRoles[g]).map(grpName=>{
+    const rolesHTML=groupedRoles[grpName].map(role=>{
+      const assigned=sched[role.id]||[];
+      const names=assigned.length
+        ?'<span class="p2-vol">'+escHtml(assigned.join(', '))+'</span>'
+        :'<span class="p2-empty">\u2014</span>';
+      return '<div class="p2-role"><div class="p2-rname">'+escHtml(role.n)+'</div><div class="p2-dots"></div>'+names+'</div>';
+    }).join('');
+    return '<div class="p2-grp"><div class="p2-gname">'+escHtml(grpName)+'</div>'+rolesHTML+'</div>';
+  }).join('');
+
+  // Compose the print document
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+    +'<title>Order of Service \u2014 '+dateStr+'</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">'
+    +'<style>'+svcOrderPrintCSS()+'</style>'
+    +'</head><body>'
+    // ── PAGE 1: Service order ──
+    +'<div class="page">'
+      +'<div class="head">'
+        +'<div class="org">Beth Israel Messianic Synagogue</div>'
+        +'<div class="kicker">Order of Service</div>'
+        +'<div class="sub">Yom Shabbat with Torah Service &amp; Shabbat School</div>'
+        +'<div class="date">'+dateStr+'</div>'
+      +'</div>'
+      +'<table class="svc-table">'
+        +'<thead><tr>'
+          +'<th class="c-who">Who</th>'
+          +'<th class="c-when">When</th>'
+          +'<th class="c-min">Min</th>'
+          +'<th class="c-what">What</th>'
+        +'</tr></thead>'
+        +'<tbody>'+rowsHtml+'</tbody>'
+      +'</table>'
+      +apBoxesHtml
+      +'<div class="foot">bethisraelnow.com &bull; Jacksonville, Florida</div>'
+    +'</div>'
+    // ── PAGE 2: People serving today ──
+    +'<div class="page">'
+      +'<div class="head">'
+        +'<div class="org">Beth Israel Messianic Synagogue</div>'
+        +'<div class="kicker">Serving Today</div>'
+        +'<div class="date">'+dateStr+'</div>'
+      +'</div>'
+      +'<div class="p2-grid">'+page2Html+'</div>'
+      +'<div class="foot">bethisraelnow.com &bull; Jacksonville, Florida</div>'
+    +'</div>'
+    +'<script>window.addEventListener(\'load\',()=>setTimeout(()=>window.print(),450));<\/script>'
+    +'</body></html>';
+}
+
+function svcOrderPrintCSS(){
+  return ''
+    +'*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}'
+    +'@page{size:letter;margin:.5in .55in}'
+    +'body{font-family:\'Lato\',Helvetica,Arial,sans-serif;background:#fff;color:#333;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    /* Page: flex column so footer can be pushed to the bottom */
+    +'.page{page-break-after:always;break-after:page;padding:0;display:flex;flex-direction:column;min-height:10in}'
+    +'.page:last-child{page-break-after:auto;break-after:auto}'
+    /* Header */
+    +'.head{text-align:center;padding-bottom:14px;margin-bottom:14px;border-bottom:2.5px solid #C4973A}'
+    +'.org{font-family:\'Playfair Display\',Georgia,serif;font-size:20px;font-weight:700;color:#1B2B4B;letter-spacing:-.01em}'
+    +'.kicker{font-size:8.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:5px}'
+    +'.sub{font-family:\'Playfair Display\',Georgia,serif;font-size:11px;font-style:italic;color:#555;margin-top:5px}'
+    +'.date{font-family:\'Playfair Display\',Georgia,serif;font-size:13px;font-style:italic;color:#1B2B4B;margin-top:6px;font-weight:600}'
+    /* Service table */
+    +'.svc-table{width:100%;border-collapse:collapse;margin-bottom:12px}'
+    +'.svc-table th{background:#1B2B4B;color:#fff;font-size:7.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:5px 8px;text-align:left}'
+    +'.svc-table th.c-who{width:118px}'
+    +'.svc-table th.c-when{width:82px;text-align:center}'
+    +'.svc-table th.c-min{width:34px;text-align:center}'
+    +'.svc-table th.c-what{}'
+    +'.svc-table td{vertical-align:top;padding:5px 8px;border-bottom:1px solid rgba(27,43,75,.09);font-size:9.5px;line-height:1.4}'
+    +'.svc-table td.c-who{background:rgba(27,43,75,.025)}'
+    /* Volunteer name — same font as the times column (Lato), bold, single line */
+    +'.svc-table .who-name{font-family:\'Lato\',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;color:#1B2B4B;white-space:nowrap}'
+    /* Torah Lifter / Torah Escort — compact "Label: Name" lines (volunteer names bold) */
+    +'.svc-table .role-pair{font-size:9px;margin-top:3px;line-height:1.35;font-weight:700;color:#1B2B4B;white-space:nowrap}'
+    +'.svc-table .role-pair-lbl{font-weight:700;color:#1B2B4B}'
+    +'.svc-table td.c-when{text-align:center;font-variant-numeric:tabular-nums;font-size:9px;color:#1B2B4B;white-space:nowrap}'
+    +'.svc-table td.c-min{text-align:center;font-weight:700;color:#888}'
+    +'.svc-table td.c-what strong{color:#1B2B4B;font-weight:700}'
+    +'.svc-table .songs{list-style:none;padding-left:8px;margin-top:2px;display:inline-block;vertical-align:top}'
+    +'.svc-table .songs li{position:relative;padding-left:11px;margin-bottom:0;line-height:1.4}'
+    +'.svc-table .songs li::before{content:"\\2022";position:absolute;left:0;color:#C4973A;font-weight:700}'
+    /* Worship Set — single column, compact spacing */
+    +'.svc-table .ws-grid{margin-top:3px}'
+    +'.svc-table .ws-item{position:relative;padding-left:11px;font-size:9.5px;line-height:1.35;margin-bottom:0}'
+    +'.svc-table .ws-item::before{content:"\\2022";position:absolute;left:0;color:#C4973A;font-weight:700}'
+    +'.svc-table .ws-item.seudat{padding-left:0;font-style:italic;font-weight:700;color:#7C5C1A}'
+    +'.svc-table .ws-item.seudat::before{content:""}'
+    +'.svc-table .empty{font-style:italic;color:#bbb;padding-left:8px;margin-top:2px;font-size:8.5px}'
+    +'.svc-table .dismiss{margin-top:5px;font-style:italic;color:#555;font-size:9px}'
+    +'.svc-table .filled{color:#7C5C1A;font-weight:700}'
+    +'.svc-table .empty-fld{color:#bbb;font-style:italic}'
+    /* Pipe divider — inherits color from surrounding text for clarity */
+    +'.svc-table .pipe-sep{color:inherit;margin:0 6px;font-weight:400}'
+    /* Announcements / Prayer Requests — two side-by-side boxes below the table */
+    +'.ap-boxes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;margin-bottom:10px}'
+    +'.ap-box{border:1.5px solid #C4973A;border-radius:5px;padding:10px 14px 12px;background:#FDF8F0;break-inside:avoid}'
+    +'.ap-box-title{font-family:\'Playfair Display\',Georgia,serif;font-size:11px;font-weight:700;color:#1B2B4B;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid rgba(196,151,58,.35)}'
+    +'.ap-box-content{font-size:9px;color:#333;line-height:1.5}'
+    +'.ap-box-content ul,.ap-box-content ol{padding-left:16px;margin:2px 0}'
+    +'.ap-box-content em.none{color:#bbb;font-size:8.5px}'
+    /* Footer — pinned to the bottom of each page via flex */
+    +'.foot{margin-top:auto;text-align:center;padding-top:10px;border-top:1px solid rgba(27,43,75,.1);font-size:7.5px;color:#aaa;letter-spacing:.12em;text-transform:uppercase}'
+    /* Page 2 */
+    +'.p2-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px}'
+    +'.p2-grp{break-inside:avoid;margin-bottom:6px}'
+    +'.p2-gname{font-size:8.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#fff;background:#1B2B4B;padding:7px 11px;margin-bottom:0}'
+    +'.p2-role{display:flex;align-items:center;padding:5px 11px;border-bottom:1px solid rgba(27,43,75,.08)}'
+    +'.p2-role:last-child{border-bottom:none}'
+    +'.p2-rname{font-family:\'Playfair Display\',Georgia,serif;font-size:10px;font-weight:600;color:#1B2B4B;flex-shrink:0}'
+    +'.p2-dots{flex:1;height:1px;margin:0 6px;min-width:8px;background-image:repeating-linear-gradient(90deg,rgba(27,43,75,.22) 0,rgba(27,43,75,.22) 1.5px,transparent 1.5px,transparent 5px)}'
+    +'.p2-vol{font-size:9.5px;font-weight:700;color:#7C5C1A;text-align:right}'
+    +'.p2-empty{font-size:9px;font-style:italic;color:#ccc}'
+    /* Print preview screen mode */
+    +'@media screen{body{max-width:880px;margin:24px auto;padding:24px}.page{border:1px solid #ddd;padding:.5in .55in;margin-bottom:24px;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.08);min-height:11in}}';
+}
+
+function exportServiceOrder(){
+  // Save current input values, then open print window
+  saveSvcOrderFields();
+  const opts=getSvcOrderFields();
+  const w=window.open('','_blank');
+  if(!w){showToast('Allow pop-ups to download PDF',true);return;}
+  w.document.write(buildServiceOrderDoc(svcCurKey,opts));
+  w.document.close();
+  closeSvcOrderModal();
+}
+
+/* ================================================================
+   MODALS
+   ================================================================ */
+function openConfirm(title,desc,onYes){
+  $('confirmTitle').textContent=title;$('confirmDesc').textContent=desc;
+  pendingDel=onYes;$('confirmOverlay').classList.add('open');
+}
+
+function openAddRoleModal(grpName){
+  addRoleToGrp=grpName||null;addRoleGrp=grpName||getOrderedGroups()[0]||'Other';
+  $('newRoleName').value='';
+  const tags=$('newRoleGrpTags');tags.innerHTML='';
+  const groups=[...new Set([...getOrderedGroups(),'Other'])];
+  groups.forEach(g=>{
+    const tag=el('button','m-grp-tag'+(g===addRoleGrp?' on':''));tag.textContent=g;
+    tag.addEventListener('click',()=>{addRoleGrp=g;tags.querySelectorAll('.m-grp-tag').forEach(t=>t.classList.remove('on'));tag.classList.add('on');});
+    tags.appendChild(tag);
+  });
+  $('addRoleOverlay').classList.add('open');setTimeout(()=>$('newRoleName').focus(),60);
+}
+
+function doAddRole(){
+  const name=$('newRoleName').value.trim();if(!name)return;
+  const nr={id:uid(),g:addRoleGrp,n:name,v:[]};
+  data.roles.push(nr);
+  if(!data.groupOrder.includes(addRoleGrp))data.groupOrder.push(addRoleGrp);
+  save();$('addRoleOverlay').classList.remove('open');
+  if(curView==='manage')renderManageView();else switchView('manage');
+}
+
+function openPw(){$('pwInput').value='';$('pwErr').classList.remove('show');$('pwOverlay').classList.add('open');setTimeout(()=>$('pwInput').focus(),60);}
+function closePw(){$('pwOverlay').classList.remove('open');}
+function tryUnlock(){
+  if($('pwInput').value===PW){unlocked=true;closePw();render();}
+  else{$('pwErr').classList.add('show');$('pwInput').value='';$('pwInput').focus();}
+}
+function doLock(){unlocked=false;closeDayDrawer();render();}
+
+/* ================================================================
+   MOBILE CALENDAR
+   ================================================================ */
+function isMobile(){return window.innerWidth<768;}
+function positionMobileSidebar(){if(!isMobile())return;const h=document.getElementById('bisw-nav').getBoundingClientRect().height;document.getElementById('bisw-sidebar').style.top=h+'px';}
+function toggleMobileCal(){
+  const sb=document.getElementById('bisw-sidebar'),ct=$('cal-toggle'),bk=$('cal-backdrop');
+  const open=sb.classList.contains('open');
+  if(open){sb.classList.remove('open');ct.classList.remove('open');bk.classList.remove('open');}
+  else{positionMobileSidebar();sb.classList.add('open');ct.classList.add('open');bk.classList.add('open');}
+}
+function closeMobileCal(){
+  document.getElementById('bisw-sidebar').classList.remove('open');
+  $('cal-toggle').classList.remove('open');$('cal-backdrop').classList.remove('open');
+}
+$('cal-backdrop').addEventListener('click',closeMobileCal);
+$('cal-toggle').addEventListener('click',toggleMobileCal);
+window.addEventListener('resize',()=>{positionMobileSidebar();if(!isMobile())closeMobileCal();});
+
+/* ================================================================
+   ALL EVENT BINDINGS
+   ================================================================ */
+$('lock-btn').addEventListener('click',()=>unlocked?doLock():openPw());
+$('navPrev').addEventListener('click',()=>{curDate=shiftWeeks(curDate,-1);closeDayDrawer();render();});
+$('navNext').addEventListener('click',()=>{curDate=shiftWeeks(curDate,+1);closeDayDrawer();render();});
+document.querySelectorAll('.view-tab').forEach(t=>t.addEventListener('click',()=>{closeDayDrawer();switchView(t.dataset.view);}));
+$('calPrev').addEventListener('click',()=>{calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();});
+$('calNext').addEventListener('click',()=>{calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();});
+
+// Password
+$('pwSubmit').addEventListener('click',tryUnlock);$('pwCancel').addEventListener('click',closePw);
+$('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();if(e.key==='Escape')closePw();});
+
+// Add role
+$('addRoleOk').addEventListener('click',doAddRole);$('addRoleCancel').addEventListener('click',()=>$('addRoleOverlay').classList.remove('open'));
+$('newRoleName').addEventListener('keydown',e=>{if(e.key==='Enter')doAddRole();});
+
+// Add group
+$('addGrpOk').addEventListener('click',()=>{
+  const gName=$('newGrpName').value.trim(),rName=$('newGrpRoleName').value.trim();
+  if(!gName||!rName)return;
+  data.roles.push({id:uid(),g:gName,n:rName,v:[]});
+  if(!data.groupOrder.includes(gName))data.groupOrder.push(gName);
+  save();$('addGrpOverlay').classList.remove('open');switchView('manage');
+});
+$('addGrpCancel').addEventListener('click',()=>$('addGrpOverlay').classList.remove('open'));
+
+// Confirm
+$('confirmYes').addEventListener('click',()=>{if(pendingDel)pendingDel();pendingDel=null;$('confirmOverlay').classList.remove('open');});
+$('confirmNo').addEventListener('click',()=>{pendingDel=null;$('confirmOverlay').classList.remove('open');});
+
+// Music PDF password
+$('musicPwSubmit').addEventListener('click',tryMusicUnlock);
+$('musicPwCancel').addEventListener('click',()=>{$('musicPwOverlay').classList.remove('open');pendingPdfData=null;});
+$('musicPwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryMusicUnlock();if(e.key==='Escape'){$('musicPwOverlay').classList.remove('open');pendingPdfData=null;}});
+
+// PDF viewer
+$('pdfViewerClose').addEventListener('click',closePdfViewer);
+
+// Export dropdown
+const exportBtn=$('export-btn'),exportMenu=$('export-menu');
+exportBtn.addEventListener('click',e=>{e.stopPropagation();exportMenu.classList.toggle('open');});
+document.addEventListener('click',()=>exportMenu.classList.remove('open'));
+exportMenu.addEventListener('click',e=>e.stopPropagation());
+$('exp-pdf').addEventListener('click',()=>{exportMenu.classList.remove('open');openPdfModal();});
+$('exp-img').addEventListener('click',()=>{exportMenu.classList.remove('open');exportJPEG();});
+$('exp-txt').addEventListener('click',()=>{exportMenu.classList.remove('open');copyAsText();});
+$('exp-svc').addEventListener('click',()=>{exportMenu.classList.remove('open');openSvcOrderModal();});
+
+// Service Order modal
+$('svcCancel').addEventListener('click',closeSvcOrderModal);
+$('svcCloseX').addEventListener('click',closeSvcOrderModal);
+$('svcDownload').addEventListener('click',exportServiceOrder);
+
+// PDF modal
+$('pdfCancel').addEventListener('click',()=>$('pdfOverlay').classList.remove('open'));
+$('pdfSelAll').addEventListener('click',()=>document.querySelectorAll('#pdf-week-list input').forEach(c=>c.checked=true));
+$('pdfSelNone').addEventListener('click',()=>document.querySelectorAll('#pdf-week-list input').forEach(c=>c.checked=false));
+$('pdfGo').addEventListener('click',()=>{
+  const checked=[...document.querySelectorAll('#pdf-week-list input:checked')];
+  if(!checked.length){showToast('Select at least one week',true);return;}
+  $('pdfOverlay').classList.remove('open');
+  const w=window.open('','_blank');
+  if(!w){showToast('Allow pop-ups to export PDF',true);return;}
+  w.document.write(buildPrintDoc(checked.map(c=>c.value)));w.document.close();
+});
+
+// Global Escape
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeDayDrawer();closeMobileCal();
+    ['pwOverlay','addRoleOverlay','addGrpOverlay','pdfOverlay','confirmOverlay','musicPwOverlay','svcOverlay']
+      .forEach(id=>$(id).classList.remove('open'));
+    closePdfViewer();
+  }
+});
+
+/* ── RESTORE YESTERDAY'S VERSION ── */
+function renderRestoreBtn(){
+  let btn=document.getElementById('bisw-restore-btn');
+  if(!unlocked){if(btn)btn.remove();return;}
+  if(btn)return;
+  btn=el('button');btn.id='bisw-restore-btn';
+  btn.innerHTML='↺ Restore Yesterday’s Version';
+  btn.style.cssText='position:fixed;bottom:20px;right:20px;z-index:800;font-family:inherit;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(27,43,75,.48);background:#fff;border:1.5px solid rgba(27,43,75,.18);border-radius:8px;padding:9px 16px;cursor:pointer;box-shadow:0 4px 18px rgba(15,23,42,.1);transition:all .15s;';
+  btn.addEventListener('mouseenter',()=>{btn.style.color='#C0392B';btn.style.borderColor='rgba(192,57,43,.38)';btn.style.background='#fdf5f5';});
+  btn.addEventListener('mouseleave',()=>{btn.style.color='rgba(27,43,75,.48)';btn.style.borderColor='rgba(27,43,75,.18)';btn.style.background='#fff';});
+  btn.addEventListener('click',confirmRestore);
+  document.getElementById('bisw').appendChild(btn);
+}
+
+async function confirmRestore(){
+  const cutoff=new Date(Date.now()-24*60*60*1000).toISOString();
+  try{
+    const {data:rows,error}=await sb.from('schedule_history')
+      .select('id,saved_at').lte('saved_at',cutoff)
+      .order('saved_at',{ascending:false}).limit(1);
+    if(error||!rows||!rows.length){showToast('No snapshot found from 24+ hours ago',true);return;}
+    const snap=rows[0];
+    const snapDate=new Date(snap.saved_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    openConfirm(
+      'Restore to '+snapDate+'?',
+      'This will overwrite the current schedule with the saved version from '+snapDate+'. This cannot be undone.',
+      ()=>doRestore(snap.id)
+    );
+  }catch(e){showToast('Could not check for snapshots',true);console.error(e);}
+}
+
+async function doRestore(snapId){
+  try{
+    const {data:row,error}=await sb.from('schedule_history').select('data').eq('id',snapId).single();
+    if(error||!row){showToast('Restore failed — snapshot not found',true);return;}
+    data=row.data;
+    save();render();
+    showToast('Schedule restored ✓');
+  }catch(e){showToast('Restore failed',true);console.error(e);}
+}
+
+/* ── INIT ── */
+positionMobileSidebar();
+(async function init(){
+  render(); // Render immediately using local/seed data so UI is never blank
+  try{
+    const {data:row}=await sb.from('schedule_data').select('data').eq('id',1).maybeSingle();
+    if(row&&row.data){
+      data=row.data;
+      try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+      render();
+    }else{
+      // First run: push current data up to Supabase
+      await sb.from('schedule_data')
+        .upsert({id:1,data:data,updated_at:new Date().toISOString()},{onConflict:'id'});
+      await sb.from('schedule_history').insert({data:data});
+      localStorage.setItem('bisw_last_snap',String(Date.now()));
+    }
+  }catch(e){console.warn('Supabase offline — using local cache:',e);}
+  // Realtime: push changes from any device to all other open sessions
+  sb.channel('bisw-schedule')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'schedule_data'},payload=>{
+      if(!unlocked&&payload.new&&payload.new.data){
+        data=payload.new.data;
+        try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+        render();
+        showToast('Schedule updated ✓');
+      }
+    })
+    .subscribe();
+})();
+
+})();
+
+</script>
+
+</body>
+</html>
