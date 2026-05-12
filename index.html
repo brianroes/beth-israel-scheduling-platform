@@ -72,6 +72,13 @@ input  { font-family: inherit; }
 .cal-cell.is-sat.near-future { color: var(--navy); }
 .cal-legend { margin-top: 14px; font-size: 0.65rem; font-weight: 500; color: var(--muted); line-height: 1.5; padding-top: 12px; border-top: 1px solid rgba(27,43,75,0.1); }
 .cal-legend span { display: inline-block; width: 10px; height: 10px; background: var(--gold); border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.cal-legend .custom-dot { background: var(--navy-lt); border-radius: 2px; }
+#add-service-btn { display: none; width: 100%; margin-top: 10px; font-family: inherit; font-size: .65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--navy); border: 1.5px dashed rgba(27,43,75,.28); border-radius: 6px; padding: 9px 8px; background: transparent; cursor: pointer; transition: all .13s; }
+#add-service-btn:hover { border-style: solid; border-color: var(--navy); background: rgba(27,43,75,.05); }
+.edit-mode #add-service-btn { display: block; }
+.cal-cell.is-custom { color: var(--navy-lt); font-weight: 700; cursor: pointer; border-radius: 50%; border: 1.5px solid var(--navy-lt); transition: all .12s; }
+.cal-cell.is-custom:hover { background: rgba(61,90,128,.12); }
+.cal-cell.is-custom.sel { background: var(--navy-lt); color: #fff; border-color: var(--navy-lt); }
 
 #bisw-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
@@ -821,6 +828,7 @@ input  { font-family: inherit; }
       </div>
       <div id="cal-grid"></div>
       <div class="cal-legend"><span></span>Saturdays are selectable</div>
+      <button id="add-service-btn">+ Add a Service</button>
     </aside>
 
     <div id="bisw-content">
@@ -875,6 +883,15 @@ input  { font-family: inherit; }
         <button id="pdfSelNone" class="btn-cancel" style="font-size:.63rem;padding:5px 10px;flex:1">Clear All</button>
       </div>
       <div class="m-actions"><button class="btn-cancel" id="pdfCancel">Cancel</button><button class="btn-primary" id="pdfGo">Generate PDF</button></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="addSvcOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Add a Service Date</div>
+      <div class="m-desc">Choose any date to create a service schedule for it.</div>
+      <input type="date" class="m-input" id="addSvcDate">
+      <div class="m-actions"><button class="btn-cancel" id="addSvcCancel">Cancel</button><button class="btn-primary" id="addSvcOk">Add Service</button></div>
     </div>
   </div>
 
@@ -1586,18 +1603,28 @@ function renderCalendar(){
   const first=new Date(calYear,calMonth,1),dim=new Date(calYear,calMonth+1,0).getDate();
   const today=new Date();today.setHours(0,0,0,0);
   const selK=toKey(curDate);
+  const customSet=new Set(data.customDates||[]);
   for(let i=0;i<first.getDay();i++)grid.appendChild(el('div','cal-cell'));
   for(let d=1;d<=dim;d++){
     const date=new Date(calYear,calMonth,d),dow=date.getDay();
     const cell=el('div','cal-cell');cell.textContent=d;
+    const k=toKey(date);
     if(dow===6){
       cell.classList.add('is-sat');
-      if(toKey(date)===selK)cell.classList.add('sel');
+      if(k===selK)cell.classList.add('sel');
       if(date<today)cell.classList.add('past');
+      cell.addEventListener('click',()=>{curDate=date;closeDayDrawer();closeMobileCal();render();});
+    }else if(customSet.has(k)){
+      cell.classList.add('is-custom');
+      if(k===selK)cell.classList.add('sel');
+      cell.title='Custom service date';
       cell.addEventListener('click',()=>{curDate=date;closeDayDrawer();closeMobileCal();render();});
     }
     grid.appendChild(cell);
   }
+  // Update legend to mention custom dates if any exist
+  const legend=$('cal-legend-text');
+  if(legend)legend.textContent=customSet.size>0?'Saturdays + custom dates are selectable':'Saturdays are selectable';
 }
 
 /* ── MULTI-WEEK VIEW ── */
@@ -2794,6 +2821,25 @@ $('addGrpCancel').addEventListener('click',()=>$('addGrpOverlay').classList.remo
 $('confirmYes').addEventListener('click',()=>{if(pendingDel)pendingDel();pendingDel=null;$('confirmOverlay').classList.remove('open');});
 $('confirmNo').addEventListener('click',()=>{pendingDel=null;$('confirmOverlay').classList.remove('open');});
 
+// Add a Service
+$('add-service-btn').addEventListener('click',()=>{
+  $('addSvcDate').value='';
+  $('addSvcOverlay').classList.add('open');
+  setTimeout(()=>$('addSvcDate').focus(),60);
+});
+$('addSvcCancel').addEventListener('click',()=>$('addSvcOverlay').classList.remove('open'));
+$('addSvcOk').addEventListener('click',()=>{
+  const val=$('addSvcDate').value;
+  if(!val)return;
+  if(!data.customDates)data.customDates=[];
+  if(!data.customDates.includes(val)){data.customDates.push(val);save();}
+  const parts=val.split('-');
+  curDate=new Date(+parts[0],+parts[1]-1,+parts[2]);
+  calYear=curDate.getFullYear();calMonth=curDate.getMonth();
+  $('addSvcOverlay').classList.remove('open');
+  render();
+});
+
 // Music PDF password
 $('musicPwSubmit').addEventListener('click',tryMusicUnlock);
 $('musicPwCancel').addEventListener('click',()=>{$('musicPwOverlay').classList.remove('open');pendingPdfData=null;});
@@ -2834,7 +2880,7 @@ $('pdfGo').addEventListener('click',()=>{
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     closeDayDrawer();closeMobileCal();
-    ['pwOverlay','addRoleOverlay','addGrpOverlay','pdfOverlay','confirmOverlay','musicPwOverlay','svcOverlay']
+    ['pwOverlay','addRoleOverlay','addGrpOverlay','pdfOverlay','confirmOverlay','musicPwOverlay','svcOverlay','addSvcOverlay']
       .forEach(id=>$(id).classList.remove('open'));
     closePdfViewer();
   }
