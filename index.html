@@ -38,7 +38,7 @@ input  { font-family: inherit; }
 
 #bisw { height: 100vh; height: 100dvh; display: flex; flex-direction: column; font-family: var(--sans); color: var(--ink); }
 
-#bisw-nav { height: 54px; background: var(--navy); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; border-bottom: 2px solid rgba(196,151,58,0.3); }
+#bisw-nav { height: 54px; background: var(--navy); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; border-bottom: 2px solid rgba(196,151,58,0.3); position: relative; z-index: 300; }
 .nav-arrow { background: transparent; border: 1.5px solid rgba(255,255,255,0.25); border-radius: 5px; color: rgba(255,255,255,0.8); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; padding: 0; flex-shrink: 0; transition: all .15s; }
 .nav-arrow:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
 #nav-date { font-family: var(--serif); font-size: 1.05rem; font-weight: 600; color: #fff; white-space: nowrap; letter-spacing: -.01em; padding: 0 4px; }
@@ -52,7 +52,8 @@ input  { font-family: inherit; }
 #lock-btn { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
 #music-btn { display: none; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
 #music-btn:hover { background: rgba(196,151,58,.15); border-color: var(--gold); }
-#music-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 199; }
+#bisw { background: var(--navy); }
+#music-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 149; }
 #lock-btn:hover { border-color: var(--gold); background: rgba(196,151,58,0.12); }
 #lock-btn.open { color: #E08B25; border-color: rgba(224,139,37,0.5); background: rgba(224,139,37,0.08); }
 #lock-btn svg { width: 18px; height: 18px; display: block; }
@@ -225,7 +226,7 @@ input  { font-family: inherit; }
   #bisw-body { overflow: hidden; }
   #bisw-content { overflow-y: auto; -webkit-overflow-scrolling: touch; }
   #music-btn { display: flex; }
-  #service-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 85vw; max-width: 340px; z-index: 200; transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1); border-left: 1px solid rgba(27,43,75,.15); border-top: none; box-shadow: -4px 0 28px rgba(15,23,42,.22); overflow-y: auto; }
+  #service-panel { position: fixed !important; top: 56px; right: 0; bottom: 0; width: 85vw !important; max-width: 340px !important; z-index: 200; transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1); border-left: 1px solid rgba(27,43,75,.15); border-top: none; box-shadow: -4px 0 28px rgba(15,23,42,.22); overflow-y: auto; }
   #service-panel.open { transform: translateX(0); }
   #music-backdrop.open { display: block; }
   .role-col { border-right: none; border-bottom: 4px solid var(--blue-bg); }
@@ -2800,11 +2801,16 @@ function isMobile(){return window.innerWidth<768;}
 function positionMobileSidebar(){if(!isMobile())return;const h=document.getElementById('bisw-nav').getBoundingClientRect().height;document.getElementById('bisw-sidebar').style.top=h+'px';}
 function openMusicDrawer(){
   const sp=$('service-panel');if(!sp)return;
+  if(isMobile()){
+    const navH=document.getElementById('bisw-nav').getBoundingClientRect().height;
+    sp.style.top=navH+'px';
+  }
   sp.classList.add('open');
   $('music-backdrop').classList.add('open');
 }
 function closeMusicDrawer(){
-  const sp=$('service-panel');if(sp)sp.classList.remove('open');
+  const sp=$('service-panel');
+  if(sp){sp.classList.remove('open');sp.style.top='';}
   $('music-backdrop').classList.remove('open');
 }
 function toggleMobileCal(){
