@@ -1338,6 +1338,73 @@ function buildSongsCard(key){
   hdr.appendChild(icon);hdr.appendChild(title);
   card.appendChild(hdr);
 
+  /* ── Locked state for non-admin non-music users ── */
+  if(!isMusicUnlocked()&&!unlocked){
+    const locked=el('div');
+    locked.style.cssText='padding:22px 20px 26px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;';
+
+    const lockIcon=el('div');lockIcon.textContent='🎼';
+    lockIcon.style.cssText='font-size:2rem;opacity:0.35;line-height:1;';
+
+    const btn=el('button');
+    btn.textContent='Click Here To View Service Music';
+    btn.style.cssText='font-family:inherit;font-size:.78rem;font-weight:700;letter-spacing:.04em;color:#fff;background:var(--navy);border:none;border-radius:7px;padding:10px 18px;cursor:pointer;transition:background .13s;';
+    btn.onmouseenter=()=>btn.style.background='#2C3E5E';
+    btn.onmouseleave=()=>btn.style.background='var(--navy)';
+
+    locked.appendChild(lockIcon);locked.appendChild(btn);
+    card.appendChild(locked);
+
+    btn.addEventListener('click',()=>{
+      locked.innerHTML='';
+      locked.style.cssText='padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;';
+
+      const lbl2=el('div');
+      lbl2.style.cssText='font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6B7FA0;text-align:center;';
+      lbl2.textContent='Enter password to view music';
+
+      const row=el('div');row.style.cssText='display:flex;gap:7px;';
+      const inp=el('input');
+      inp.type='password';inp.placeholder='Password';inp.maxLength=30;inp.autocomplete='off';
+      inp.style.cssText='font-family:inherit;font-size:.88rem;border:1.5px solid rgba(27,43,75,.2);border-radius:6px;padding:8px 12px;flex:1;outline:none;transition:border-color .13s;background:#fff;';
+      inp.onfocus=()=>inp.style.borderColor='var(--gold)';
+      inp.onblur=()=>inp.style.borderColor='rgba(27,43,75,.2)';
+
+      const okBtn=el('button');
+      okBtn.textContent='View';
+      okBtn.style.cssText='font-family:inherit;font-size:.78rem;font-weight:700;color:#fff;background:var(--gold);border:none;border-radius:6px;padding:8px 16px;cursor:pointer;transition:background .13s;flex-shrink:0;';
+      okBtn.onmouseenter=()=>okBtn.style.background='var(--gold-dk)';
+      okBtn.onmouseleave=()=>okBtn.style.background='var(--gold)';
+
+      const errMsg=el('div');
+      errMsg.style.cssText='font-size:.74rem;color:#C0392B;text-align:center;display:none;';
+      errMsg.textContent='Incorrect password. Please try again.';
+
+      row.appendChild(inp);row.appendChild(okBtn);
+      locked.appendChild(lbl2);locked.appendChild(row);locked.appendChild(errMsg);
+      setTimeout(()=>inp.focus(),60);
+
+      const doUnlock=async()=>{
+        const pw=inp.value;
+        okBtn.disabled=true;okBtn.textContent='Checking\u2026';
+        const {data:ok}=await sb.rpc('verify_music_password',{pw});
+        if(ok){
+          pdfMusicUnlocked=true;pdfMusicUnlockedAt=Date.now();
+          refreshServicePanel(key);
+        }else{
+          okBtn.disabled=false;okBtn.textContent='View';
+          errMsg.style.display='';
+          inp.value='';inp.focus();
+        }
+      };
+      okBtn.addEventListener('click',doUnlock);
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter')doUnlock();});
+    });
+
+    return card;
+  }
+
+  /* ── Unlocked: show songs ── */
   card.appendChild(buildSongGroup(svc,'opening',key,'Opening Song',1,4));
   card.appendChild(buildSongGroup(svc,'parade',key,'Torah Parade Song',1,4));
   card.appendChild(buildSongGroup(svc,'worship',key,'Worship Set',3,6));
