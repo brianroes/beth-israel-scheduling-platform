@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1B2B4B">
+<meta name="theme-color" content="#C4973A">
 <title>Shabbat Schedule — Beth Israel Messianic Synagogue</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,24 +38,24 @@ input  { font-family: inherit; }
 
 #bisw { height: 100vh; height: 100dvh; display: flex; flex-direction: column; font-family: var(--sans); color: var(--ink); }
 
-#bisw-nav { height: 54px; background: var(--navy); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; border-bottom: 2px solid rgba(196,151,58,0.3); position: relative; z-index: 300; }
-.nav-arrow { background: transparent; border: 1.5px solid rgba(255,255,255,0.25); border-radius: 5px; color: rgba(255,255,255,0.8); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; padding: 0; flex-shrink: 0; transition: all .15s; }
-.nav-arrow:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
+#bisw-nav { height: 54px; background: var(--gold); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; border-bottom: 2px solid rgba(0,0,0,0.12); position: relative; z-index: 300; }
+.nav-arrow { background: transparent; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 5px; color: rgba(255,255,255,0.9); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; padding: 0; flex-shrink: 0; transition: all .15s; }
+.nav-arrow:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.2); }
 #nav-date { font-family: var(--serif); font-size: 1.05rem; font-weight: 600; color: #fff; white-space: nowrap; letter-spacing: -.01em; padding: 0 4px; }
-#view-tabs { display: none; align-items: center; gap: 2px; margin-left: 16px; background: rgba(0,0,0,0.2); border-radius: 7px; padding: 3px; }
+#view-tabs { display: none; align-items: center; gap: 2px; margin-left: 16px; background: rgba(0,0,0,0.15); border-radius: 7px; padding: 3px; }
 #view-tabs.show { display: flex; }
-.view-tab { font-size: 0.72rem; font-weight: 600; letter-spacing: .04em; color: rgba(255,255,255,0.55); background: transparent; border: none; padding: 5px 13px; border-radius: 5px; transition: all .14s; white-space: nowrap; }
-.view-tab:hover { color: rgba(255,255,255,0.85); }
+.view-tab { font-size: 0.72rem; font-weight: 600; letter-spacing: .04em; color: rgba(255,255,255,0.65); background: transparent; border: none; padding: 5px 13px; border-radius: 5px; transition: all .14s; white-space: nowrap; }
+.view-tab:hover { color: #fff; }
 .view-tab.active { background: var(--white); color: var(--navy); }
 #nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-#nav-status { font-size: 0.7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
-#lock-btn { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
-#music-btn { display: none; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(196,151,58,0.35); border-radius: 7px; color: var(--gold); width: 38px; height: 38px; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
-#music-btn:hover { background: rgba(196,151,58,.15); border-color: var(--gold); }
-#bisw { background: var(--navy); }
-#music-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 149; }
-#lock-btn:hover { border-color: var(--gold); background: rgba(196,151,58,0.12); }
-#lock-btn.open { color: #E08B25; border-color: rgba(224,139,37,0.5); background: rgba(224,139,37,0.08); }
+#nav-status { font-size: 0.7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+#lock-btn { background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.4); border-radius: 7px; color: #fff; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
+#music-btn { display: none; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.4); border-radius: 7px; color: #fff; width: 38px; height: 38px; align-items: center; justify-content: center; padding: 0; transition: all .15s; flex-shrink: 0; }
+#music-btn:hover { background: rgba(255,255,255,0.28); border-color: #fff; }
+#bisw { background: var(--gold); }
+#music-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 350; }
+#lock-btn:hover { border-color: #fff; background: rgba(255,255,255,0.28); }
+#lock-btn.open { color: #fff; border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.25); }
 #lock-btn svg { width: 18px; height: 18px; display: block; }
 
 #bisw-body { flex: 1; display: flex; overflow: hidden; }
@@ -228,7 +228,7 @@ input  { font-family: inherit; }
   #view-day { overflow: visible; }
   .role-col { overflow: visible; }
   #music-btn { display: flex; }
-  #service-panel { position: fixed !important; top: 56px; right: 0; bottom: 0; width: 85vw !important; max-width: 340px !important; z-index: 200; transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1); border-left: 1px solid rgba(27,43,75,.15); border-top: none; box-shadow: -4px 0 28px rgba(15,23,42,.22); overflow-y: auto; }
+  #service-panel { position: fixed !important; top: 56px; right: 0; bottom: 0; width: 85vw !important; max-width: 340px !important; z-index: 400; transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1); border-left: 1px solid rgba(27,43,75,.15); border-top: none; box-shadow: -4px 0 28px rgba(15,23,42,.22); overflow-y: auto; }
   #service-panel.open { transform: translateX(0); }
   #music-backdrop.open { display: block; }
   .role-col { border-right: none; border-bottom: 4px solid var(--blue-bg); }
@@ -297,7 +297,7 @@ input  { font-family: inherit; }
 .export-item-icon{font-size:1.3rem;flex-shrink:0;line-height:1;}
 .export-item-label{font-size:.86rem;font-weight:700;color:#0F172A;display:block;margin-bottom:1px;}
 .export-item-hint{font-size:.7rem;color:#6B7FA0;display:block;}
-@media(max-width:479px){.export-btn-text{display:none;}.export-btn{padding:6px 10px;}.export-menu{right:-10px;}}
+@media(max-width:479px){.export-btn-text{display:none;}.export-btn{padding:6px 10px;}.export-menu{right:0;max-width:calc(100vw - 28px);}}
 
 .pdf-week-item{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(27,43,75,.06);transition:background .12s;}
 .pdf-week-item:last-child{border-bottom:none;}
@@ -1295,7 +1295,8 @@ function getSvcData(key){
   });
   if(sc._announcements===undefined)sc._announcements='';
   if(sc._prayer===undefined)sc._prayer='';
-  if(!sc._svcOrder)sc._svcOrder={msgTitle:'',parsha:'',torahRef:'',haftorahRef:'',britRef:'',seudat:false};
+  if(!sc._svcOrder)sc._svcOrder={msgTitle:'',parsha:'',torahRef:'',haftorahRef:'',britRef:'',seudat:false,kaddish:false};
+  if(sc._svcOrder.kaddish===undefined)sc._svcOrder.kaddish=false;
   return sc;
 }
 
@@ -2394,7 +2395,8 @@ function getSvcOrderFields(){
     torahRef:    ($('svc-torahRef')   ||{value:o.torahRef    ||''}).value,
     haftorahRef: ($('svc-haftorahRef')||{value:o.haftorahRef ||''}).value,
     britRef:     ($('svc-britRef')    ||{value:o.britRef     ||''}).value,
-    seudat:      ($('svc-seudat')     ||{checked:!!o.seudat}).checked
+    seudat:      ($('svc-seudat')     ||{checked:!!o.seudat}).checked,
+    kaddish:     ($('svc-kaddish')    ||{checked:!!o.kaddish}).checked
   };
 }
 
@@ -2528,12 +2530,14 @@ function renderSvcPreview(){
           +'<td class="cell-min">30</td>'
           +'<td class="cell-what"><strong>Song Set:</strong>'+worshipGridHtml()+'<div style="margin-top:6px">Dismiss Children for Shabbat School</div></td>'
         +'</tr>'
-        // Row 8: Closing liturgy (Emcee — compact pipe-list)
+        // Row 8: Closing liturgy (Emcee — compact pipe-list, optional Kaddish)
         +'<tr>'
           +'<td class="cell-who">'+escHtml(ctx.emcee)+'</td>'
           +'<td class="cell-when">11:48&ndash;11:53</td>'
           +'<td class="cell-min">5</td>'
-          +'<td class="cell-what">'+pipeListPv(['Mourner\u2019s Kaddish','Prayer Requests','Announcements'])+'</td>'
+          +'<td class="cell-what">'+pipeListPv([...(o.kaddish?['Mourner\u2019s Kaddish']:[]),'Prayer Requests','Announcements'])
+            +'<label class="svc-seudat-row"><input type="checkbox" id="svc-kaddish"'+(o.kaddish?' checked':'')+"> Include <strong>Mourner's Kaddish</strong> this week</label>"
+          +'</td>'
         +'</tr>'
         // Row 9: Message
         +'<tr>'
@@ -2558,17 +2562,18 @@ function renderSvcPreview(){
       +'</div>'
     +'</div>';
 
-  // Wire up live-update of preview when Seudat checkbox toggles
-  const seudatCb=$('svc-seudat');
-  if(seudatCb){
-    seudatCb.addEventListener('change',()=>{
-      const svc=getSvcData(svcCurKey);
-      // Save inputs first so we don't lose them on re-render
-      svc._svcOrder={...svc._svcOrder,...getSvcOrderFields()};
-      save();
-      renderSvcPreview();
-    });
-  }
+  // Wire up live-update of preview when Seudat or Kaddish checkbox toggles
+  ['svc-seudat','svc-kaddish'].forEach(cbId=>{
+    const cb=$(cbId);
+    if(cb){
+      cb.addEventListener('change',()=>{
+        const svc=getSvcData(svcCurKey);
+        svc._svcOrder={...svc._svcOrder,...getSvcOrderFields()};
+        save();
+        renderSvcPreview();
+      });
+    }
+  });
   // Auto-save on input
   ['svc-msgTitle','svc-parsha','svc-torahRef','svc-haftorahRef','svc-britRef'].forEach(id=>{
     const inp=$(id);
@@ -2668,7 +2673,7 @@ function buildServiceOrderDoc(key,opts){
     {who:ctx.worshipLeader,when:'11:18 \u2013 11:48',min:30,
      what:'<strong>Song Set:</strong>'+worshipGrid()+'<div class="dismiss">Dismiss Children for Shabbat School</div>'},
     {who:ctx.emcee,when:'11:48 \u2013 11:53',min:5,
-     what:pipeListPdf(['Mourner\u2019s Kaddish','Prayer Requests','Announcements'])},
+     what:pipeListPdf([...(opts.kaddish?['Mourner\u2019s Kaddish']:[]),'Prayer Requests','Announcements'])},
     {who:ctx.speaker,when:'11:53 \u2013 12:28',min:35,
      what:'<strong>Title:</strong> '+msgTitle+'<br>Close: Aaronic Benediction'}
   ];
