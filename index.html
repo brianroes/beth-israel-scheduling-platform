@@ -8,9 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha512-z8IYLHO8bTgFqj+yrPyIJnzBDf7DDhWwiEsk4sY+Oe6J2M+WQequeGS7qioI5vT6rXgVRb4K1UVQC5ER7MKzKQ==" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.js" integrity="sha384-7SfFUrg31wOnGWBLLniKFCNmCSguYA5wI1WPDOt7kP/mom4R9/0pwghVEnv0uwYP" crossorigin="anonymous"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; overflow: hidden; background: var(--navy); font-size: 16px; }
@@ -971,7 +971,8 @@ const SUPABASE_URL='https://ekzvmlicfatqqceorhgz.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrenZtbGljZmF0cXFjZW9yaGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NDIwNjAsImV4cCI6MjA4NjMxODA2MH0.HxULK72tX0gx2Nyo2SU7IaNDejms9UwRS0X1ovdsPU8';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const SK='bisw_v6', PW='unlock', PDF_PW='music';
+const SK='bisw_v6';
+const ADMIN_EMAIL='admin@bethisraelnow.com';
 const LOGO='https://bethisraelnow.com/wp-content/uploads/2025/06/beth-israel-messianic-synagogue-jacksonville-florida-white-logo.png';
 
 /* ── SEED ── */
@@ -1546,8 +1547,13 @@ function requestPdfAccess(pdfData,pdfName){
   }
 }
 
-function tryMusicUnlock(){
-  if($('musicPwInput').value===PDF_PW){
+async function tryMusicUnlock(){
+  const pw=$('musicPwInput').value;
+  const btn=$('musicPwSubmit');
+  btn.disabled=true;btn.textContent='Checking…';
+  const {data:ok,error}=await sb.rpc('verify_music_password',{pw});
+  btn.disabled=false;btn.textContent='View PDF';
+  if(ok){
     pdfMusicUnlocked=true;pdfMusicUnlockedAt=Date.now();$('musicPwOverlay').classList.remove('open');
     if(pendingPdfData==='__dlall__'){
       pendingPdfData=null;
@@ -2787,11 +2793,16 @@ function doAddRole(){
 
 function openPw(){$('pwInput').value='';$('pwErr').classList.remove('show');$('pwOverlay').classList.add('open');setTimeout(()=>$('pwInput').focus(),60);}
 function closePw(){$('pwOverlay').classList.remove('open');}
-function tryUnlock(){
-  if($('pwInput').value===PW){unlocked=true;closePw();render();}
+async function tryUnlock(){
+  const pw=$('pwInput').value;
+  const btn=$('pwSubmit');
+  btn.disabled=true;btn.textContent='Checking…';
+  const {data,error}=await sb.auth.signInWithPassword({email:ADMIN_EMAIL,password:pw});
+  btn.disabled=false;btn.textContent='Unlock';
+  if(data?.session){unlocked=true;closePw();render();}
   else{$('pwErr').classList.add('show');$('pwInput').value='';$('pwInput').focus();}
 }
-function doLock(){unlocked=false;closeDayDrawer();render();}
+function doLock(){unlocked=false;closeDayDrawer();render();sb.auth.signOut();}
 
 /* ================================================================
    MOBILE CALENDAR
@@ -2973,6 +2984,10 @@ async function doRestore(snapId){
 /* ── INIT ── */
 positionMobileSidebar();
 (async function init(){
+  // Restore admin session if the user was previously logged in
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user?.email===ADMIN_EMAIL)unlocked=true;
+
   render(); // Render immediately using local/seed data so UI is never blank
   try{
     const {data:row}=await sb.from('schedule_data').select('data').eq('id',1).maybeSingle();
