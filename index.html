@@ -89,7 +89,7 @@ input  { font-family: inherit; }
 #bisw-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
 #view-day { flex: 1; display: flex; overflow: hidden; }
-.role-col { display: flex; flex-direction: column; background: var(--white); border-right: 1px solid rgba(27,43,75,0.09); overflow: hidden; }
+.role-col { display: flex; flex-direction: column; background: var(--white); border-right: 1px solid rgba(27,43,75,0.09); overflow-y: auto; overflow-x: hidden; }
 .role-col:last-child { border-right: none; }
 .grp-hdr { background: var(--navy); color: #fff; padding: 0 14px; height: 52px; display: flex; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
 .role-row { display: flex; align-items: center; padding: 10px 20px; min-height: 52px; border-bottom: 1px solid rgba(27,43,75,0.07); flex-shrink: 0; gap: 0; transition: background .12s; position: relative; overflow: hidden; }
@@ -225,6 +225,8 @@ input  { font-family: inherit; }
   #cal-month-lbl { font-size: 1.05rem; }
   #bisw-body { overflow: hidden; }
   #bisw-content { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #view-day { overflow: visible; }
+  .role-col { overflow: visible; }
   #music-btn { display: flex; }
   #service-panel { position: fixed !important; top: 56px; right: 0; bottom: 0; width: 85vw !important; max-width: 340px !important; z-index: 200; transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1); border-left: 1px solid rgba(27,43,75,.15); border-top: none; box-shadow: -4px 0 28px rgba(15,23,42,.22); overflow-y: auto; }
   #service-panel.open { transform: translateX(0); }
@@ -1212,6 +1214,7 @@ function toggleDayDrawer(roleId,row,key){
   const role=data.roles.find(r=>r.id===roleId);if(!role)return;
   const panel=buildDayPanel(role,key);
   row.after(panel);openDayDrawerEl=panel;
+  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
 }
 
 function buildDayPanel(role,key){
