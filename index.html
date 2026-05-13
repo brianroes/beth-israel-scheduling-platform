@@ -1094,19 +1094,23 @@ function save(){
   sb.from('schedule_data')
     .upsert({id:1,data:data,updated_at:new Date().toISOString()},{onConflict:'id'})
     .then(({error})=>{if(error)console.warn('Supabase save:',error);});
-  // Hourly snapshot for restore feature
+  // Snapshot every 5 minutes for version history
   const lastSnap=parseInt(localStorage.getItem('bisw_last_snap')||'0',10);
-  if(Date.now()-lastSnap>60*60*1000){
+  if(Date.now()-lastSnap>5*60*1000){
     localStorage.setItem('bisw_last_snap',String(Date.now()));
     sb.from('schedule_history').insert({data:data})
       .then(({error})=>{if(error)console.warn('Snapshot error:',error);});
+    // Prune snapshots older than 7 days
+    sb.from('schedule_history').delete()
+      .lt('saved_at',new Date(Date.now()-7*24*3600*1000).toISOString())
+      .then(({error})=>{if(error)console.warn('Prune error:',error);});
   }
 }
 
 /* ================================================================
    RENDER
    ================================================================ */
-function render(){renderNav();renderCalendar();renderContent();}
+function render(){renderNav();renderCalendar();renderContent();renderRestoreBtn();}
 
 function renderNav(){
   $('nav-date').textContent=fmtDate(curDate);
@@ -3007,45 +3011,144 @@ document.addEventListener('keydown',e=>{
   }
 });
 
-/* ── RESTORE YESTERDAY'S VERSION ── */
+/* ── VERSION HISTORY ── */
 function renderRestoreBtn(){
-  let btn=document.getElementById('bisw-restore-btn');
+  let btn=document.getElementById(‘bisw-restore-btn’);
   if(!unlocked){if(btn)btn.remove();return;}
   if(btn)return;
-  btn=el('button');btn.id='bisw-restore-btn';
-  btn.innerHTML='↺ Restore Yesterday’s Version';
-  btn.style.cssText='position:fixed;bottom:20px;right:20px;z-index:800;font-family:inherit;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(27,43,75,.48);background:#fff;border:1.5px solid rgba(27,43,75,.18);border-radius:8px;padding:9px 16px;cursor:pointer;box-shadow:0 4px 18px rgba(15,23,42,.1);transition:all .15s;';
-  btn.addEventListener('mouseenter',()=>{btn.style.color='#C0392B';btn.style.borderColor='rgba(192,57,43,.38)';btn.style.background='#fdf5f5';});
-  btn.addEventListener('mouseleave',()=>{btn.style.color='rgba(27,43,75,.48)';btn.style.borderColor='rgba(27,43,75,.18)';btn.style.background='#fff';});
-  btn.addEventListener('click',confirmRestore);
-  document.getElementById('bisw').appendChild(btn);
+  btn=el(‘button’);btn.id=’bisw-restore-btn’;
+  btn.innerHTML=’&#8634; Version History’;
+  btn.style.cssText=’position:fixed;bottom:20px;right:20px;z-index:800;font-family:inherit;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(27,43,75,.5);background:#fff;border:1.5px solid rgba(27,43,75,.18);border-radius:8px;padding:9px 16px;cursor:pointer;box-shadow:0 4px 18px rgba(15,23,42,.1);transition:all .15s;’;
+  btn.addEventListener(‘mouseenter’,()=>{btn.style.color=’#1B2B4B’;btn.style.borderColor=’rgba(27,43,75,.38)’;btn.style.background=’#F8FAFC’;});
+  btn.addEventListener(‘mouseleave’,()=>{btn.style.color=’rgba(27,43,75,.5)’;btn.style.borderColor=’rgba(27,43,75,.18)’;btn.style.background=’#fff’;});
+  btn.addEventListener(‘click’,openRestorePanel);
+  document.getElementById(‘bisw’).appendChild(btn);
 }
 
-async function confirmRestore(){
-  const cutoff=new Date(Date.now()-24*60*60*1000).toISOString();
+async function openRestorePanel(){
+  const existing=document.getElementById(‘bisw-history-overlay’);
+  if(existing){existing.remove();return;}
+
+  const overlay=el(‘div’);overlay.id=’bisw-history-overlay’;
+  overlay.style.cssText=’position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;’;
+
+  const modal=el(‘div’);
+  modal.style.cssText=’background:#fff;border-radius:14px;width:100%;max-width:460px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(15,23,42,.28);overflow:hidden;’;
+
+  const hdr=el(‘div’);
+  hdr.style.cssText=’display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid rgba(27,43,75,.09);flex-shrink:0;’;
+  const htitle=el(‘div’);htitle.style.cssText=’font-size:1rem;font-weight:700;color:#0F172A;’;htitle.textContent=’↺ Version History’;
+  const xBtn=el(‘button’);xBtn.innerHTML=’&times;’;
+  xBtn.style.cssText=’font-family:inherit;background:transparent;border:none;font-size:22px;color:rgba(27,43,75,.35);cursor:pointer;padding:0;line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:5px;transition:color .12s;’;
+  xBtn.addEventListener(‘click’,()=>overlay.remove());
+  hdr.appendChild(htitle);hdr.appendChild(xBtn);modal.appendChild(hdr);
+
+  const body=el(‘div’);body.style.cssText=’flex:1;overflow-y:auto;padding:16px 20px 20px;’;
+  const loading=el(‘div’);loading.style.cssText=’text-align:center;color:#6B7FA0;font-size:.85rem;padding:32px;’;loading.textContent=’Loading history…’;
+  body.appendChild(loading);modal.appendChild(body);
+
+  overlay.addEventListener(‘click’,e=>{if(e.target===overlay)overlay.remove();});
+  overlay.appendChild(modal);
+  document.getElementById(‘bisw’).appendChild(overlay);
+
   try{
-    const {data:rows,error}=await sb.from('schedule_history')
-      .select('id,saved_at').lte('saved_at',cutoff)
-      .order('saved_at',{ascending:false}).limit(1);
-    if(error||!rows||!rows.length){showToast('No snapshot found from 24+ hours ago',true);return;}
-    const snap=rows[0];
-    const snapDate=new Date(snap.saved_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-    openConfirm(
-      'Restore to '+snapDate+'?',
-      'This will overwrite the current schedule with the saved version from '+snapDate+'. This cannot be undone.',
-      ()=>doRestore(snap.id)
-    );
-  }catch(e){showToast('Could not check for snapshots',true);console.error(e);}
+    const since=new Date(Date.now()-7*24*3600*1000).toISOString();
+    const {data:rows,error}=await sb.from(‘schedule_history’)
+      .select(‘id,saved_at’).gte(‘saved_at’,since)
+      .order(‘saved_at’,{ascending:false}).limit(500);
+
+    body.innerHTML=’’;
+
+    if(error||!rows||!rows.length){
+      const empty=el(‘div’);empty.style.cssText=’text-align:center;color:#6B7FA0;font-size:.85rem;padding:32px;line-height:1.6;’;
+      empty.textContent=’No snapshots yet. History builds up automatically as you make changes.’;
+      body.appendChild(empty);return;
+    }
+
+    const groups=groupSnapshots(rows);
+    const desc=el(‘div’);desc.style.cssText=’font-size:.78rem;color:#6B7FA0;margin-bottom:16px;line-height:1.5;’;
+    desc.textContent=’Select a version to restore. The current schedule will be overwritten.’;
+    body.appendChild(desc);
+
+    groups.forEach(group=>{
+      const grpHdr=el(‘div’);grpHdr.style.cssText=’font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6B7FA0;margin:16px 0 7px;’;
+      grpHdr.textContent=group.label;body.appendChild(grpHdr);
+
+      group.items.forEach(snap=>{
+        const row=el(‘div’);
+        row.style.cssText=’display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1.5px solid rgba(27,43,75,.1);margin-bottom:5px;transition:all .12s;’;
+        row.addEventListener(‘mouseenter’,()=>{row.style.background=’rgba(27,43,75,.03)’;row.style.borderColor=’rgba(27,43,75,.2)’;});
+        row.addEventListener(‘mouseleave’,()=>{row.style.background=’’;row.style.borderColor=’rgba(27,43,75,.1)’;});
+
+        const info=el(‘div’);
+        const age=el(‘div’);age.style.cssText=’font-size:.85rem;font-weight:600;color:#0F172A;’;age.textContent=fmtAge(snap.saved_at);
+        const ts=el(‘div’);ts.style.cssText=’font-size:.72rem;color:#6B7FA0;margin-top:2px;’;ts.textContent=fmtSnapTime(snap.saved_at);
+        info.appendChild(age);info.appendChild(ts);
+
+        const rBtn=el(‘button’);rBtn.textContent=’Restore’;
+        rBtn.style.cssText=’font-family:inherit;font-size:.7rem;font-weight:700;letter-spacing:.04em;color:#fff;background:#1B2B4B;border:none;border-radius:5px;padding:6px 13px;cursor:pointer;flex-shrink:0;transition:background .12s;’;
+        rBtn.addEventListener(‘mouseenter’,()=>rBtn.style.background=’#C0392B’);
+        rBtn.addEventListener(‘mouseleave’,()=>rBtn.style.background=’#1B2B4B’);
+        rBtn.addEventListener(‘click’,e=>{
+          e.stopPropagation();
+          openConfirm(
+            ‘Restore to ‘+fmtAge(snap.saved_at)+’?’,
+            ‘This will overwrite the current schedule with the version from ‘+fmtSnapTime(snap.saved_at)+’. This cannot be undone.’,
+            async()=>{overlay.remove();await doRestore(snap.id);}
+          );
+        });
+
+        row.appendChild(info);row.appendChild(rBtn);body.appendChild(row);
+      });
+    });
+  }catch(e){
+    body.innerHTML=’’;
+    const errDiv=el(‘div’);errDiv.style.cssText=’text-align:center;color:#C0392B;font-size:.85rem;padding:32px;’;
+    errDiv.textContent=’Could not load history.’;body.appendChild(errDiv);console.error(e);
+  }
+}
+
+function groupSnapshots(rows){
+  const now=Date.now();
+  const recent=[],hourly={},daily={};
+  rows.forEach(row=>{
+    const age=now-new Date(row.saved_at).getTime();
+    const ageMin=age/60000,ageHr=age/3600000,ageDay=age/86400000;
+    if(ageMin<=15){recent.push(row);}
+    else if(ageDay<=1){const h=Math.floor(ageHr);if(!hourly[h])hourly[h]=row;}
+    else{const d=Math.floor(ageDay);if(!daily[d])daily[d]=row;}
+  });
+  const result=[];
+  if(recent.length)result.push({label:’Recent’,items:recent.slice(0,5)});
+  const hi=Object.keys(hourly).sort((a,b)=>+a-+b).map(h=>hourly[h]);
+  if(hi.length)result.push({label:’Past 24 Hours’,items:hi});
+  const di=Object.keys(daily).sort((a,b)=>+a-+b).map(d=>daily[d]);
+  if(di.length)result.push({label:’Past 7 Days’,items:di});
+  return result;
+}
+
+function fmtAge(savedAt){
+  const age=Date.now()-new Date(savedAt).getTime();
+  const min=Math.round(age/60000),hr=Math.round(age/3600000),day=Math.floor(age/86400000);
+  if(min<2)return’Just now’;
+  if(min<60)return min+’ minutes ago’;
+  if(hr===1)return’1 hour ago’;
+  if(hr<24)return hr+’ hours ago’;
+  if(day===1)return’Yesterday’;
+  return day+’ days ago’;
+}
+
+function fmtSnapTime(savedAt){
+  return new Date(savedAt).toLocaleString(‘en-US’,{month:’short’,day:’numeric’,hour:’numeric’,minute:’2-digit’});
 }
 
 async function doRestore(snapId){
   try{
-    const {data:row,error}=await sb.from('schedule_history').select('data').eq('id',snapId).single();
-    if(error||!row){showToast('Restore failed — snapshot not found',true);return;}
-    data=row.data;
-    save();render();
-    showToast('Schedule restored ✓');
-  }catch(e){showToast('Restore failed',true);console.error(e);}
+    const {data:row,error}=await sb.from(‘schedule_history’).select(‘data’).eq(‘id’,snapId).single();
+    if(error||!row){showToast(‘Restore failed — snapshot not found’,true);return;}
+    data=row.data;save();render();
+    showToast(‘Schedule restored ✓’);
+  }catch(e){showToast(‘Restore failed’,true);console.error(e);}
 }
 
 /* ── INIT ── */
