@@ -1572,6 +1572,14 @@ function buildLockedCard(key,field,title,icon,bodyClass){
 
   rteEl.addEventListener('input',()=>{svc[field]=rteEl.innerHTML;save();});
   rteEl.addEventListener('blur',()=>{svc[field]=rteEl.innerHTML;save();});
+  rteEl.addEventListener('paste',e=>{
+    e.preventDefault();
+    let t=(e.clipboardData||window.clipboardData).getData('text/plain');
+    // Normalize line endings, collapse excess blank lines (strips double-spacing, fonts, colors, etc.)
+    t=t.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+    document.execCommand('insertText',false,t);
+    svc[field]=rteEl.innerHTML;save();
+  });
 
   body.appendChild(toolbar);body.appendChild(rteEl);
   card.appendChild(body);
@@ -2729,7 +2737,6 @@ function buildServiceOrderDoc(key,opts){
       +'<div class="head">'
         +'<div class="org">Beth Israel Messianic Synagogue</div>'
         +'<div class="kicker">Order of Service</div>'
-        +'<div class="sub">Yom Shabbat with Torah Service &amp; Shabbat School</div>'
         +'<div class="date">'+dateStr+'</div>'
       +'</div>'
       +'<table class="svc-table">'
@@ -2754,7 +2761,18 @@ function buildServiceOrderDoc(key,opts){
       +'<div class="p2-grid">'+page2Html+'</div>'
       +'<div class="foot">bethisraelnow.com &bull; Jacksonville, Florida</div>'
     +'</div>'
-    +'<script>window.addEventListener(\'load\',()=>setTimeout(()=>window.print(),450));<\/script>'
+    +'<script>window.addEventListener(\'load\',function(){'
+    +'var page=document.querySelector(\'.page\');'
+    +'var aps=document.querySelectorAll(\'.ap-box-content\');'
+    +'if(page&&aps.length){'
+    // 1056px = 11in at 96dpi — matches screen rendering target (page has .5in top/bottom padding in screen mode)
+    +'page.style.height=\'1056px\';page.style.overflow=\'hidden\';'
+    +'var fs=9;'
+    +'while(page.scrollHeight>1056&&fs>5){fs-=0.5;aps.forEach(function(a){a.style.fontSize=fs+\'px\';});}'
+    +'page.style.height=\'\';page.style.overflow=\'\';'
+    +'}'
+    +'setTimeout(function(){window.print();},450);'
+    +'});<\/script>'
     +'</body></html>';
 }
 
@@ -2766,12 +2784,11 @@ function svcOrderPrintCSS(){
     /* Page: flex column so footer can be pushed to the bottom */
     +'.page{page-break-after:always;break-after:page;padding:0;display:flex;flex-direction:column;min-height:10in}'
     +'.page:last-child{page-break-after:auto;break-after:auto}'
-    /* Header */
-    +'.head{text-align:center;padding-bottom:14px;margin-bottom:14px;border-bottom:2.5px solid #C4973A}'
-    +'.org{font-family:\'Playfair Display\',Georgia,serif;font-size:20px;font-weight:700;color:#1B2B4B;letter-spacing:-.01em}'
-    +'.kicker{font-size:8.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:5px}'
-    +'.sub{font-family:\'Playfair Display\',Georgia,serif;font-size:11px;font-style:italic;color:#555;margin-top:5px}'
-    +'.date{font-family:\'Playfair Display\',Georgia,serif;font-size:13px;font-style:italic;color:#1B2B4B;margin-top:6px;font-weight:600}'
+    /* Header — compact single-line feel */
+    +'.head{text-align:center;padding-bottom:8px;margin-bottom:10px;border-bottom:2px solid #C4973A}'
+    +'.org{font-family:\'Playfair Display\',Georgia,serif;font-size:16px;font-weight:700;color:#1B2B4B;letter-spacing:-.01em}'
+    +'.kicker{font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:3px}'
+    +'.date{font-family:\'Playfair Display\',Georgia,serif;font-size:12px;font-style:italic;color:#1B2B4B;margin-top:3px;font-weight:600}'
     /* Service table */
     +'.svc-table{width:100%;border-collapse:collapse;margin-bottom:12px}'
     +'.svc-table th{background:#1B2B4B;color:#fff;font-size:7.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:5px 8px;text-align:left}'
