@@ -813,7 +813,7 @@ input  { font-family: inherit; }
     <div id="nav-right">
       <span id="nav-status">View only</span>
       <button id="music-btn" title="Songs & Music">
-        <span style="font-size:20px;line-height:1;display:block;margin-top:-1px">&#119070;</span>
+        <span style="font-size:28px;line-height:1;display:block;margin-top:-1px">&#119070;</span>
       </button>
       <button id="lock-btn" title="Click to unlock">
         <svg id="svg-locked" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1180,12 +1180,17 @@ function renderDayView(){
   /* ── Service panel (right) ── */
   const prevPanel=document.getElementById('service-panel');
   const drawerWasOpen=prevPanel&&prevPanel.classList.contains('open');
+  // Explicitly remove old panel regardless of where it lives in the DOM
+  // (on mobile it may have been moved to document.body by openMusicDrawer)
+  if(prevPanel)prevPanel.remove();
   const svcPanel=buildServicePanel(key);
   if(drawerWasOpen)svcPanel.classList.add('open');
 
   wrap.appendChild(schedGrid);
   wrap.appendChild(svcPanel);
   if(unlocked)applyRoleDragHandles();
+  // If drawer was open on mobile, re-establish correct z-index layering
+  if(drawerWasOpen&&isMobile())openMusicDrawer();
 }
 
 function buildRoleRow(role,assigned,key){
@@ -2908,6 +2913,10 @@ function openMusicDrawer(){
   if(isMobile()){
     const navH=document.getElementById('bisw-nav').getBoundingClientRect().height;
     sp.style.top=navH+'px';
+    // Move panel to document.body so it escapes any ancestor stacking context
+    // (e.g. -webkit-overflow-scrolling:touch on #bisw-content traps z-index)
+    // and can properly layer above #music-backdrop (z-index:350) at z-index:400.
+    document.body.appendChild(sp);
   }
   sp.classList.add('open');
   $('music-backdrop').classList.add('open');
