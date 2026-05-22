@@ -411,6 +411,9 @@ input  { font-family: inherit; }
 .song-add-btn:hover { color: var(--gold-dk); border-style: solid; border-color: var(--gold); }
 .song-rm-btn { flex-shrink: 0; background: transparent; border: none; color: rgba(27,43,75,.2); cursor: pointer; font-size: 16px; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; transition: color .12s; line-height: 1; }
 .song-rm-btn:hover { color: var(--danger); }
+.song-move-btn { flex-shrink: 0; background: transparent; border: 1px solid rgba(27,43,75,.13); color: rgba(27,43,75,.35); cursor: pointer; font-size: 11px; padding: 0; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; transition: all .12s; line-height: 1; border-radius: 4px; }
+.song-move-btn:hover { color: var(--gold-dk); border-color: var(--gold); background: rgba(196,151,58,.08); }
+.song-move-btn.disabled { opacity: .2; cursor: default; pointer-events: none; }
 
 /* === Download-all button — clearly separated from song list === */
 .svc-dl-all-wrap {
@@ -1517,6 +1520,29 @@ function buildSongRow(song,key,cat,idx,isArr,items,svc,grp,label,minSlots,maxSlo
       upBtn.title='Upload sheet music PDF';
       upBtn.addEventListener('click',()=>triggerPdfUpload(song,key));
       row.appendChild(upBtn);
+    }
+
+    /* Move up / down buttons (only when more than 1 song in category) */
+    if(isArr&&items.length>1){
+      const upBtn=el('button','song-move-btn');upBtn.innerHTML='&#9650;';upBtn.title='Move up';
+      if(idx===0)upBtn.classList.add('disabled');
+      upBtn.addEventListener('click',()=>{
+        if(idx===0)return;
+        const arr=svc._songs[cat];
+        [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]];
+        save();refreshServicePanel(key);
+      });
+      row.appendChild(upBtn);
+
+      const dnBtn=el('button','song-move-btn');dnBtn.innerHTML='&#9660;';dnBtn.title='Move down';
+      if(idx===items.length-1)dnBtn.classList.add('disabled');
+      dnBtn.addEventListener('click',()=>{
+        if(idx===items.length-1)return;
+        const arr=svc._songs[cat];
+        [arr[idx],arr[idx+1]]=[arr[idx+1],arr[idx]];
+        save();refreshServicePanel(key);
+      });
+      row.appendChild(dnBtn);
     }
 
     /* Remove-song button (only for array categories above minSlots) */
