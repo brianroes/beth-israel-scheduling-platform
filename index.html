@@ -771,6 +771,10 @@ input  { font-family: inherit; }
           <span class="export-item-icon">&#128220;</span>
           <span><span class="export-item-label">Export Service Order</span><span class="export-item-hint">Full order of service &mdash; for the service team</span></span>
         </button>
+        <button class="export-item" id="exp-sync" style="border-top:1px solid rgba(27,43,75,.08)">
+          <span class="export-item-icon">&#8635;</span>
+          <span><span class="export-item-label">Sync Torah Readings</span><span class="export-item-hint">Pull latest parsha, readings &amp; readers</span></span>
+        </button>
       </div>
     </div>
 
@@ -2735,6 +2739,27 @@ $('exp-pdf').addEventListener('click',()=>{exportMenu.classList.remove('open');o
 $('exp-img').addEventListener('click',()=>{exportMenu.classList.remove('open');exportJPEG();});
 $('exp-txt').addEventListener('click',()=>{exportMenu.classList.remove('open');copyAsText();});
 $('exp-svc').addEventListener('click',()=>{exportMenu.classList.remove('open');openSvcOrderModal();});
+$('exp-sync').addEventListener('click',()=>{exportMenu.classList.remove('open');syncTorahReadings();});
+
+// Pull Torah-service fields (parsha, scripture refs, cantor/readers/carrier/escort)
+// from Jorge's database via our secure /api/sync-torah endpoint, then refresh the UI.
+async function syncTorahReadings(){
+  if(!unlocked){showToast('Unlock as admin to sync',true);return;}
+  showToast('Syncing Torah readings…');
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const token=session&&session.access_token;
+    if(!token){showToast('Please unlock as admin first',true);return;}
+    const r=await fetch('/api/sync-torah',{headers:{Authorization:'Bearer '+token}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){showToast('Sync failed'+(j&&j.error?': '+j.error:''),true);return;}
+    const n=(j.datesUpdated||[]).length;
+    showToast(n?('Updated '+n+' date'+(n>1?'s':'')+' ✓'):'Already up to date ✓');
+    // Reload the latest data so the change is reflected immediately.
+    const {data:row}=await sb.from('schedule_data').select('data').eq('id',1).maybeSingle();
+    if(row&&row.data){data=row.data;try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}render();}
+  }catch(e){showToast('Sync failed',true);}
+}
 
 // Service Order modal
 $('svcCancel').addEventListener('click',closeSvcOrderModal);
