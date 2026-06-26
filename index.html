@@ -975,6 +975,10 @@ const SEED={
 
 /* ── STATE ── */
 let data=loadDataLocal(), unlocked=false, curDate=getNextSat(new Date());
+// Concurrency guard: updated_at of the schedule_data row this session currently holds.
+// A save only overwrites the DB if it still matches — so a stale tab can't clobber newer
+// edits made from another session. saveInFlight/savePending coalesce rapid same-session saves.
+let baseUpdatedAt=null, saveInFlight=false, savePending=false;
 let calYear=curDate.getFullYear(), calMonth=curDate.getMonth();
 let curView='day', mwRoleId=null, mwWeeksShown=15, addRoleGrp='Other', addRoleToGrp=null;
 let pendingDel=null, openDayRowId=null, openDayDrawerEl=null;
@@ -1047,21 +1051,87 @@ function loadDataLocal(){
   return JSON.parse(JSON.stringify(SEED));
 }
 function save(){
+  // localStorage is always written immediately so the device never loses the latest view.
   try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+  // Only one remote write in flight at a time; bursts (e.g. typing) coalesce into one follow-up.
+  if(saveInFlight){savePending=true;return;}
+  saveInFlight=true;
+  doSaveRemote();
+}
+function doSaveRemote(){
+  const newTs=new Date().toISOString();
+  const attempt=JSON.parse(JSON.stringify(data)); // snapshot the exact bytes this write persists
+  const finish=()=>{
+    saveInFlight=false;
+    if(savePending){savePending=false;saveInFlight=true;doSaveRemote();}
+  };
+  // No known base means this session never proved it is editing the current DB row.
+  // Do not force-write a local cache over live data; refresh and ask the admin to retry.
+  if(!baseUpdatedAt){
+    sb.from('schedule_data')
+      .select('data,updated_at').eq('id',1).maybeSingle()
+      .then(({data:row,error})=>{
+        if(error){showToast('⚠ Changes not saved — check your connection',true);}
+        else if(row&&row.data){
+          sb.from('schedule_history').insert({data:attempt}).then(()=>{},()=>{});
+          data=row.data; baseUpdatedAt=row.updated_at; stripPdfData(data);
+          try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+          render();
+          showToast('Schedule was refreshed before saving — re-apply your last edit.',true);
+        }else{
+          sb.from('schedule_data')
+            .upsert({id:1,data:attempt,updated_at:newTs},{onConflict:'id'})
+            .select('updated_at').maybeSingle()
+            .then(({data:ins,error:upsertError})=>{
+              if(upsertError){showToast('⚠ Changes not saved — check your connection',true);}
+              else{if(ins)baseUpdatedAt=ins.updated_at;maybeSnapshot(attempt);}
+              finish();
+            });
+          return;
+        }
+        finish();
+      });
+    return;
+  }
+  // Optimistic concurrency: the .eq('updated_at',base) matches zero rows if another session
+  // saved since we loaded — so we never silently overwrite their work.
   sb.from('schedule_data')
-    .upsert({id:1,data:data,updated_at:new Date().toISOString()},{onConflict:'id'})
-    .then(({error})=>{if(error)console.warn('Supabase save:',error);});
-  // Snapshot every 5 minutes for version history
+    .update({data:attempt,updated_at:newTs}).eq('id',1).eq('updated_at',baseUpdatedAt)
+    .select('updated_at')
+    .then(({data:rows,error})=>{
+      if(error){showToast('⚠ Changes not saved — please sign in again',true);finish();return;}
+      if(rows&&rows.length){baseUpdatedAt=rows[0].updated_at;maybeSnapshot(attempt);finish();}
+      else{handleSaveConflict(attempt,finish);}
+    });
+}
+// Snapshot to version history at most once every 5 minutes.
+function maybeSnapshot(snap){
   const lastSnap=parseInt(localStorage.getItem('bisw_last_snap')||'0',10);
   if(Date.now()-lastSnap>5*60*1000){
     localStorage.setItem('bisw_last_snap',String(Date.now()));
-    sb.from('schedule_history').insert({data:data})
+    sb.from('schedule_history').insert({data:snap})
       .then(({error})=>{if(error)console.warn('Snapshot error:',error);});
     // Prune snapshots older than 7 days
     sb.from('schedule_history').delete()
       .lt('saved_at',new Date(Date.now()-7*24*3600*1000).toISOString())
       .then(({error})=>{if(error)console.warn('Prune error:',error);});
   }
+}
+// Another session saved between our load and this write. Never overwrite their work:
+// stash our attempt into history (recoverable), pull the latest, and tell the user to redo.
+function handleSaveConflict(attempt,finish){
+  sb.from('schedule_history').insert({data:attempt}).then(()=>{},()=>{});
+  sb.from('schedule_data').select('data,updated_at').eq('id',1).maybeSingle()
+    .then(({data:row,error})=>{
+      if(error||!row){showToast('⚠ Save conflict — please reload the page',true);}
+      else{
+        data=row.data; baseUpdatedAt=row.updated_at; stripPdfData(data);
+        try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+        render();
+        showToast('Schedule was changed elsewhere — refreshed. Re-apply your last edit.',true);
+      }
+      if(finish)finish();
+    });
 }
 
 /* ================================================================
@@ -2756,8 +2826,12 @@ async function syncTorahReadings(){
     const n=(j.datesUpdated||[]).length;
     showToast(n?('Updated '+n+' date'+(n>1?'s':'')+' ✓'):'Already up to date ✓');
     // Reload the latest data so the change is reflected immediately.
-    const {data:row}=await sb.from('schedule_data').select('data').eq('id',1).maybeSingle();
-    if(row&&row.data){data=row.data;try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}render();}
+    const {data:row}=await sb.from('schedule_data').select('data,updated_at').eq('id',1).maybeSingle();
+    if(row&&row.data){
+      data=row.data;baseUpdatedAt=row.updated_at;stripPdfData(data);
+      try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+      render();
+    }
   }catch(e){showToast('Sync failed',true);}
 }
 
@@ -2923,7 +2997,9 @@ async function doRestore(snapId){
   try{
     const {data:row,error}=await sb.from('schedule_history').select('data').eq('id',snapId).single();
     if(error||!row){showToast('Restore failed — snapshot not found',true);return;}
-    data=row.data;save();render();
+    // A restore is a deliberate overwrite of the live version; clear the base so save()
+    // force-pushes it rather than treating it as a stale-edit conflict.
+    data=row.data;baseUpdatedAt=null;save();render();
     showToast('Schedule restored ✓');
   }catch(e){showToast('Restore failed',true);console.error(e);}
 }
@@ -2953,9 +3029,10 @@ function stripPdfData(d){
 
   render(); // Render immediately using local/seed data so UI is never blank
   try{
-    const {data:row}=await sb.from('schedule_data').select('data').eq('id',1).maybeSingle();
+    const {data:row}=await sb.from('schedule_data').select('data,updated_at').eq('id',1).maybeSingle();
     if(row&&row.data){
       data=row.data;
+      baseUpdatedAt=row.updated_at; // remember which DB version we're holding
       // Self-healing: strip any orphaned PDF blobs. Persist the slim version when an
       // admin is signed in (anon writes are blocked by RLS, so don't fire a failing save).
       const stripped=stripPdfData(data);
@@ -2964,8 +3041,11 @@ function stripPdfData(d){
       render();
     }else{
       // First run: push current data up to Supabase
-      await sb.from('schedule_data')
-        .upsert({id:1,data:data,updated_at:new Date().toISOString()},{onConflict:'id'});
+      const ts=new Date().toISOString();
+      const {data:ins}=await sb.from('schedule_data')
+        .upsert({id:1,data:data,updated_at:ts},{onConflict:'id'})
+        .select('updated_at').maybeSingle();
+      baseUpdatedAt=(ins&&ins.updated_at)||ts;
       await sb.from('schedule_history').insert({data:data});
       localStorage.setItem('bisw_last_snap',String(Date.now()));
     }
@@ -2975,6 +3055,7 @@ function stripPdfData(d){
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'schedule_data'},payload=>{
       if(!unlocked&&payload.new&&payload.new.data){
         data=payload.new.data;
+        baseUpdatedAt=payload.new.updated_at||baseUpdatedAt;
         stripPdfData(data);
         try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
         render();

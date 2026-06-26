@@ -99,13 +99,15 @@ export default async function handler(req, res) {
 
   // 2) Read our current schedule row (service role bypasses RLS).
   let data;
+  let baseUpdatedAt;
   try {
-    const rr = await fetch(`${OUR_SUPABASE}/rest/v1/schedule_data?id=eq.1&select=data`, {
+    const rr = await fetch(`${OUR_SUPABASE}/rest/v1/schedule_data?id=eq.1&select=data,updated_at`, {
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
     });
     if (!rr.ok) return res.status(502).json({ error: 'Could not read schedule row', status: rr.status });
     const rows = await rr.json();
     data = rows && rows[0] && rows[0].data;
+    baseUpdatedAt = rows && rows[0] && rows[0].updated_at;
   } catch (e) {
     return res.status(502).json({ error: 'Could not read schedule row.' });
   }
@@ -165,17 +167,27 @@ export default async function handler(req, res) {
   // 4) Write back only if something actually changed.
   if (changes > 0) {
     try {
-      const wr = await fetch(`${OUR_SUPABASE}/rest/v1/schedule_data?id=eq.1`, {
-        method: 'PATCH',
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=minimal',
-        },
-        body: JSON.stringify({ data, updated_at: new Date().toISOString() }),
-      });
+      const newUpdatedAt = new Date().toISOString();
+      const wr = await fetch(
+        `${OUR_SUPABASE}/rest/v1/schedule_data?id=eq.1&updated_at=eq.${encodeURIComponent(baseUpdatedAt)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify({ data, updated_at: newUpdatedAt }),
+        }
+      );
       if (!wr.ok) return res.status(502).json({ error: 'Could not write schedule row', status: wr.status });
+      const written = await wr.json();
+      if (!Array.isArray(written) || !written.length) {
+        return res.status(409).json({
+          error: 'Schedule changed during sync. Please run sync again.',
+        });
+      }
     } catch (e) {
       return res.status(502).json({ error: 'Could not write schedule row.' });
     }
