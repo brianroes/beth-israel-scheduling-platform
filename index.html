@@ -1073,6 +1073,7 @@ function save(){
   doSaveRemote();
 }
 function doSaveRemote(){
+ try{
   const newTs=new Date().toISOString();
   const attempt=JSON.parse(JSON.stringify(data)); // snapshot the exact bytes this write persists
   const finish=()=>{
@@ -1117,6 +1118,11 @@ function doSaveRemote(){
       if(rows&&rows.length){baseUpdatedAt=rows[0].updated_at;maybeSnapshot(attempt);finish();}
       else{handleSaveConflict(attempt,finish);}
     });
+ }catch(e){ // never let a synchronous error leave the save queue stuck
+   console.error('Save error:',e);
+   showToast('⚠ Unexpected save error — please reload',true);
+   saveInFlight=false;savePending=false;
+ }
 }
 // Snapshot to version history at most once every 5 minutes.
 function maybeSnapshot(snap){
@@ -2723,7 +2729,7 @@ async function tryUnlock(){
    If unanswered (or never seen — they walked away/closed the tab) the session
    auto-locks after a 60s grace, flushing any pending save first so no edit is lost. */
 const IDLE_MS=10*60*1000, IDLE_GRACE_S=60;
-let lastActivity=Date.now(), idleWatch=null, idleGrace=null, idlePromptOn=false, _actThrottle=false;
+let lastActivity=Date.now(), idleWatch=null, idleGrace=null, idlePromptOn=false, _actThrottle=false, lockCancelled=false;
 function noteActivity(){
   if(idlePromptOn||_actThrottle)return; // while the prompt is up, require an explicit choice
   _actThrottle=true;setTimeout(()=>{_actThrottle=false;},1500);
@@ -2755,6 +2761,7 @@ function showIdlePrompt(){
   },1000);
 }
 function idleStay(){ // "Yes, keep editing"
+  lockCancelled=true; // cancel an auto-lock whose save-flush may already be pending
   if(idleGrace){clearInterval(idleGrace);idleGrace=null;}
   idlePromptOn=false;
   $('idleOverlay').classList.remove('open');
@@ -2771,7 +2778,9 @@ function flushSaves(cb){
 }
 // Relock (sign out). isAuto=true when triggered by the idle timer.
 function lock(isAuto){
+  lockCancelled=false;
   flushSaves(()=>{
+    if(lockCancelled)return; // user chose "keep editing" during the flush — abort the lock
     unlocked=false;
     untrackEditor();    // release the exclusive edit lock so others can edit
     stopIdleWatch();
@@ -3127,9 +3136,17 @@ async function doRestore(snapId){
   try{
     const {data:row,error}=await sb.from('schedule_history').select('data').eq('id',snapId).single();
     if(error||!row){showToast('Restore failed — snapshot not found',true);return;}
-    // A restore is a deliberate overwrite of the live version; clear the base so save()
-    // force-pushes it rather than treating it as a stale-edit conflict.
-    data=row.data;baseUpdatedAt=null;save();render();
+    // A restore is a deliberate, unconditional overwrite of the live version. Write it
+    // directly (NOT via save(), whose concurrency guard would treat it as a stale edit and
+    // revert it), then adopt the returned timestamp as our new base.
+    const ts=new Date().toISOString();
+    const {data:written,error:we}=await sb.from('schedule_data')
+      .update({data:row.data,updated_at:ts}).eq('id',1)
+      .select('updated_at').maybeSingle();
+    if(we||!written){showToast('Restore failed — could not save',true);return;}
+    data=row.data;baseUpdatedAt=written.updated_at;stripPdfData(data);
+    try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){}
+    render();
     showToast('Schedule restored ✓');
   }catch(e){showToast('Restore failed',true);console.error(e);}
 }
