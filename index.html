@@ -849,6 +849,20 @@ input  { font-family: inherit; }
       <div class="m-actions"><button class="btn-cancel" id="pwCancel">Cancel</button><button class="btn-primary" id="pwSubmit">Unlock</button></div>
     </div>
   </div>
+  <div class="bisw-overlay" id="idleOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Still editing?</div>
+      <div class="m-desc">You've been inactive for 10 minutes. Would you like to remain in editing mode?<span id="idleNote" style="display:block;margin-top:9px;font-weight:700;opacity:.7;font-size:.85em">Locking automatically in 60s…</span></div>
+      <div class="m-actions"><button class="btn-cancel" id="idleLockNow">No, lock now</button><button class="btn-primary" id="idleStay">Yes, keep editing</button></div>
+    </div>
+  </div>
+  <div class="bisw-overlay" id="editLockOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Schedule in use</div>
+      <div class="m-desc">Another user is editing this schedule right now. Please check back in 10 minutes.</div>
+      <div class="m-actions"><button class="btn-primary" id="editLockOk">Got it</button></div>
+    </div>
+  </div>
 
   <div class="bisw-overlay" id="addRoleOverlay">
     <div class="bisw-modal">
@@ -2701,10 +2715,119 @@ async function tryUnlock(){
   btn.disabled=true;btn.textContent='Checking…';
   const {data,error}=await sb.auth.signInWithPassword({email:ADMIN_EMAIL,password:pw});
   btn.disabled=false;btn.textContent='Unlock';
-  if(data?.session){unlocked=true;closePw();render();}
+  if(data?.session){unlocked=true;closePw();render();startIdleWatch();trackEditor();}
   else{$('pwErr').classList.add('show');$('pwInput').value='';$('pwInput').focus();}
 }
-function doLock(){unlocked=false;closeDayDrawer();render();sb.auth.signOut();}
+/* ── Idle auto-lock ─────────────────────────────────────────────
+   After 10 min of no admin activity, ask whether to stay in editing mode.
+   If unanswered (or never seen — they walked away/closed the tab) the session
+   auto-locks after a 60s grace, flushing any pending save first so no edit is lost. */
+const IDLE_MS=10*60*1000, IDLE_GRACE_S=60;
+let lastActivity=Date.now(), idleWatch=null, idleGrace=null, idlePromptOn=false, _actThrottle=false;
+function noteActivity(){
+  if(idlePromptOn||_actThrottle)return; // while the prompt is up, require an explicit choice
+  _actThrottle=true;setTimeout(()=>{_actThrottle=false;},1500);
+  lastActivity=Date.now();
+}
+function startIdleWatch(){
+  stopIdleWatch();
+  lastActivity=Date.now();
+  idleWatch=setInterval(()=>{
+    if(!unlocked||idlePromptOn)return;
+    if(Date.now()-lastActivity>=IDLE_MS)showIdlePrompt();
+  },5000);
+}
+function stopIdleWatch(){
+  if(idleWatch){clearInterval(idleWatch);idleWatch=null;}
+  if(idleGrace){clearInterval(idleGrace);idleGrace=null;}
+  idlePromptOn=false;
+  $('idleOverlay').classList.remove('open');
+}
+function showIdlePrompt(){
+  idlePromptOn=true;
+  let remain=IDLE_GRACE_S;
+  $('idleNote').textContent='Locking automatically in '+remain+'s…';
+  $('idleOverlay').classList.add('open');
+  idleGrace=setInterval(()=>{
+    remain--;
+    $('idleNote').textContent='Locking automatically in '+remain+'s…';
+    if(remain<=0){clearInterval(idleGrace);idleGrace=null;lock(true);}
+  },1000);
+}
+function idleStay(){ // "Yes, keep editing"
+  if(idleGrace){clearInterval(idleGrace);idleGrace=null;}
+  idlePromptOn=false;
+  $('idleOverlay').classList.remove('open');
+  lastActivity=Date.now();
+}
+// Wait for any in-flight/pending save to reach the DB before locking (4s safety cap),
+// so the admin's last edit is committed before we sign out and lose write access.
+function flushSaves(cb){
+  if(!saveInFlight&&!savePending){cb();return;}
+  let tries=0;
+  const iv=setInterval(()=>{
+    if((!saveInFlight&&!savePending)||++tries>40){clearInterval(iv);cb();}
+  },100);
+}
+// Relock (sign out). isAuto=true when triggered by the idle timer.
+function lock(isAuto){
+  flushSaves(()=>{
+    unlocked=false;
+    untrackEditor();    // release the exclusive edit lock so others can edit
+    stopIdleWatch();
+    closeDayDrawer();
+    render();
+    sb.auth.signOut();
+    if(isAuto)showToast('Locked due to inactivity — your changes were saved.');
+  });
+}
+function doLock(){lock(false);} // manual Lock button
+
+/* ── Exclusive edit lock (one editor at a time) ─────────────────
+   Uses Supabase Realtime Presence: an editing session "tracks" itself; everyone
+   else sees it and is held to view-only. Presence auto-clears when a tab closes
+   or crashes, so the lock can never get stuck. The deterministic holder is the
+   editor with the earliest (since, sid); any later session yields to view-only.
+   The optimistic-concurrency save guard remains underneath as a backstop, so no
+   edit can ever be clobbered even in a rare simultaneous-unlock race. */
+const MY_SID=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():('sid-'+Date.now()+'-'+Math.random().toString(36).slice(2));
+let editLockChan=null, currentEditors=[], mySince=0;
+function refreshEditors(){
+  currentEditors=[];
+  if(!editLockChan)return;
+  const st=editLockChan.presenceState()||{};
+  for(const k in st){for(const m of (st[k]||[])){if(m&&m.role==='editor')currentEditors.push(m);}}
+}
+function lockHolder(){ // smallest (since,sid) wins — deterministic, no double-yield
+  let best=null;
+  for(const m of currentEditors){
+    if(!best||m.since<best.since||(m.since===best.since&&m.sid<best.sid))best=m;
+  }
+  return best;
+}
+function someoneElseEditing(){return currentEditors.some(m=>m.sid!==MY_SID);}
+function trackEditor(){mySince=Date.now();if(editLockChan)editLockChan.track({role:'editor',sid:MY_SID,since:mySince});}
+function untrackEditor(){if(editLockChan)editLockChan.untrack();}
+function onEditPresenceSync(){
+  refreshEditors();
+  if(unlocked){const h=lockHolder();if(h&&h.sid!==MY_SID)forceYield();}
+}
+function forceYield(){ // I tried to edit but someone already holds the lock — drop to view-only
+  unlocked=false;
+  untrackEditor();
+  stopIdleWatch();
+  closeDayDrawer();
+  render();
+  sb.auth.signOut();
+  showEditLockMsg();
+}
+function showEditLockMsg(){$('editLockOverlay').classList.add('open');}
+function closeEditLockMsg(){$('editLockOverlay').classList.remove('open');}
+function initEditLock(){
+  editLockChan=sb.channel('bisw-editlock',{config:{presence:{key:MY_SID}}});
+  editLockChan.on('presence',{event:'sync'},onEditPresenceSync);
+  editLockChan.subscribe((status)=>{if(status==='SUBSCRIBED'&&unlocked)trackEditor();});
+}
 
 /* ================================================================
    MOBILE CALENDAR
@@ -2752,7 +2875,11 @@ window.addEventListener('resize',()=>{positionMobileSidebar();if(!isMobile())clo
 /* ================================================================
    ALL EVENT BINDINGS
    ================================================================ */
-$('lock-btn').addEventListener('click',()=>unlocked?doLock():openPw());
+$('lock-btn').addEventListener('click',()=>{
+  if(unlocked){doLock();return;}
+  if(someoneElseEditing()){showEditLockMsg();return;} // exclusive edit lock: one editor at a time
+  openPw();
+});
 $('navPrev').addEventListener('click',()=>{curDate=shiftWeeks(curDate,-1);closeDayDrawer();render();});
 $('navNext').addEventListener('click',()=>{curDate=shiftWeeks(curDate,+1);closeDayDrawer();render();});
 document.querySelectorAll('.view-tab').forEach(t=>t.addEventListener('click',()=>{closeDayDrawer();switchView(t.dataset.view);}));
@@ -2761,6 +2888,9 @@ $('calNext').addEventListener('click',()=>{calMonth++;if(calMonth>11){calMonth=0
 
 // Password
 $('pwSubmit').addEventListener('click',tryUnlock);$('pwCancel').addEventListener('click',closePw);
+$('idleStay').addEventListener('click',idleStay);$('idleLockNow').addEventListener('click',()=>lock(false));
+$('editLockOk').addEventListener('click',closeEditLockMsg);
+['pointerdown','keydown','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,noteActivity,{passive:true,capture:true}));
 $('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();if(e.key==='Escape')closePw();});
 
 // Add role
@@ -3025,7 +3155,7 @@ function stripPdfData(d){
 (async function init(){
   // Restore admin session if the user was previously logged in
   const {data:{session}}=await sb.auth.getSession();
-  if(session?.user?.email===ADMIN_EMAIL)unlocked=true;
+  if(session?.user?.email===ADMIN_EMAIL){unlocked=true;startIdleWatch();}
 
   render(); // Render immediately using local/seed data so UI is never blank
   try{
@@ -3063,6 +3193,7 @@ function stripPdfData(d){
       }
     })
     .subscribe();
+  initEditLock(); // exclusive edit-lock presence channel
 })();
 
 })();
