@@ -81,6 +81,14 @@ input  { font-family: inherit; }
 #add-service-btn { display: none; width: 100%; margin-top: 10px; font-family: inherit; font-size: 0.75rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--navy); border: 1.5px dashed rgba(27,43,75,.28); border-radius: 6px; padding: 9px 8px; background: transparent; cursor: pointer; transition: all .13s; }
 #add-service-btn:hover { border-style: solid; border-color: var(--navy); background: rgba(27,43,75,.05); }
 .edit-mode #add-service-btn { display: block; }
+#remove-service-btn { display: none; width: 100%; margin-top: 8px; font-family: inherit; font-size: 0.75rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--danger); border: 1.5px dashed rgba(192,57,43,.35); border-radius: 6px; padding: 9px 8px; background: transparent; cursor: pointer; transition: all .13s; }
+#remove-service-btn:hover { border-style: solid; border-color: var(--danger); background: rgba(192,57,43,.06); }
+.edit-mode #remove-service-btn.has-custom { display: block; }
+.remove-svc-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 4px; border-bottom: 1px solid rgba(27,43,75,.08); }
+.remove-svc-row:last-child { border-bottom: none; }
+.remove-svc-date { font-size: 0.85rem; font-weight: 600; color: var(--navy); text-align: left; }
+.remove-svc-x { font-family: inherit; font-size: 0.7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--danger); border: 1.5px solid rgba(192,57,43,.4); border-radius: 6px; padding: 6px 12px; background: transparent; cursor: pointer; flex-shrink: 0; transition: all .13s; }
+.remove-svc-x:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 .cal-cell.is-custom { color: var(--navy-lt); font-weight: 700; cursor: pointer; border-radius: 50%; border: 1.5px solid var(--navy-lt); transition: all .12s; }
 .cal-cell.is-custom:hover { background: rgba(61,90,128,.12); }
 .cal-cell.is-custom.sel { background: var(--navy-lt); color: #fff; border-color: var(--navy-lt); }
@@ -133,6 +141,9 @@ input  { font-family: inherit; }
 .mw-table td:first-child { text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--ink); white-space: nowrap; background: rgba(27,43,75,0.02); padding: 8px 14px; }
 .mw-table tr:hover td { background: rgba(27,43,75,0.025); }
 .mw-table tr:hover td:first-child { background: rgba(27,43,75,0.06); }
+.mw-table tr.mw-custom-row td { background: rgba(61,90,128,0.07); }
+.mw-table tr.mw-custom-row td:first-child { color: var(--navy-lt); font-weight: 700; }
+.mw-table tr.mw-custom-row:hover td { background: rgba(61,90,128,0.12); }
 .mw-cb-wrap { display: flex; align-items: center; justify-content: center; }
 
 #view-manage { flex: 1; overflow-y: auto; padding: 24px 28px; background: var(--white); }
@@ -826,6 +837,7 @@ input  { font-family: inherit; }
       <div id="cal-grid"></div>
       <div class="cal-legend"><span></span>Saturdays are selectable</div>
       <button id="add-service-btn">+ Add a Service</button>
+      <button id="remove-service-btn">&#8722; Remove a Service</button>
     </aside>
 
     <div id="bisw-content">
@@ -903,6 +915,15 @@ input  { font-family: inherit; }
       <div class="m-desc">Choose any date to create a service schedule for it.</div>
       <input type="date" class="m-input" id="addSvcDate">
       <div class="m-actions"><button class="btn-cancel" id="addSvcCancel">Cancel</button><button class="btn-primary" id="addSvcOk">Add Service</button></div>
+    </div>
+  </div>
+
+  <div class="bisw-overlay" id="removeSvcOverlay">
+    <div class="bisw-modal">
+      <div class="m-title">Remove a Service Date</div>
+      <div class="m-desc">These custom service dates have been added to the schedule. Removing one deletes that service.</div>
+      <div id="removeSvcList" style="border:1.5px solid rgba(27,43,75,.12);border-radius:8px;padding:4px 12px;margin-bottom:14px;max-height:260px;overflow-y:auto;text-align:left"></div>
+      <div class="m-actions"><button class="btn-cancel" id="removeSvcCancel">Close</button></div>
     </div>
   </div>
 
@@ -1004,6 +1025,35 @@ function toKey(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate
 function p2(n){return String(n).padStart(2,'0');}
 function fmtDate(d){return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});}
 function fmtShort(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+// Every service date in a window: weekly Saturdays plus any custom-added
+// dates falling inside it, sorted chronologically. Single source of truth
+// so multi-week view and exports always match the calendar.
+function getServiceDates(from,weekCount){
+  const start=new Date(from);start.setHours(0,0,0,0);
+  const firstSat=getNextSat(start);
+  const dates=[];for(let i=0;i<weekCount;i++)dates.push(shiftWeeks(firstSat,i));
+  const end=dates[dates.length-1];
+  const seen=new Set(dates.map(toKey));
+  (data.customDates||[]).forEach(k=>{
+    if(seen.has(k))return;
+    const p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);
+    if(d>=start&&d<=end){dates.push(d);seen.add(k);}
+  });
+  return dates.sort((a,b)=>a-b);
+}
+// The nearest service date (Saturday or custom) strictly before/after `from`,
+// so the nav arrows never skip a midweek service or land on a non-service day.
+function adjacentServiceDate(from,dir){
+  const cur=new Date(from);cur.setHours(0,0,0,0);
+  let best;
+  if(dir>0)best=cur.getDay()===6?shiftWeeks(cur,1):getNextSat(cur);
+  else best=cur.getDay()===6?shiftWeeks(cur,-1):shiftWeeks(getNextSat(cur),-1);
+  (data.customDates||[]).forEach(k=>{
+    const p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);
+    if(dir>0?(d>cur&&d<best):(d<cur&&d>best))best=d;
+  });
+  return best;
+}
 function uid(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function sortByLast(arr){
   return [...arr].sort((a,b)=>{
@@ -1560,6 +1610,8 @@ function renderCalendar(){
     }
     grid.appendChild(cell);
   }
+  // Show "Remove a Service" only when custom dates exist (visible in edit mode via CSS)
+  $('remove-service-btn').classList.toggle('has-custom',customSet.size>0);
   // Update legend to mention custom dates if any exist
   const legend=$('cal-legend-text');
   if(legend)legend.textContent=customSet.size>0?'Saturdays + custom dates are selectable':'Saturdays are selectable';
@@ -1583,10 +1635,11 @@ function renderMultiWeekView(){
   if(!mwRoleId){const e2=el('div','mw-empty');e2.textContent='Select a role to schedule across multiple weeks.';area.appendChild(e2);return;}
   const role=data.roles.find(r=>r.id===mwRoleId);if(!role)return;
   const title=el('div','mw-role-title');title.textContent=role.n;area.appendChild(title);
-  const sats=[];for(let i=0;i<mwWeeksShown;i++)sats.push(shiftWeeks(curDate,i));
+  const svcDates=getServiceDates(curDate,mwWeeksShown);
+  const hasCustom=svcDates.some(d=>d.getDay()!==6);
   const table=el('table','mw-table');
   const thead=el('thead'),hr=el('tr');
-  const dt=el('th');dt.textContent='Saturday';hr.appendChild(dt);
+  const dt=el('th');dt.textContent=hasCustom?'Service Date':'Saturday';hr.appendChild(dt);
   sortByLast(role.v).forEach(vol=>{
     const th=el('th');
     const parts=vol.trim().split(/\s+/);
@@ -1598,10 +1651,16 @@ function renderMultiWeekView(){
   });
   thead.appendChild(hr);table.appendChild(thead);
   const tbody=el('tbody');
-  sats.forEach(sat=>{
-    const key=toKey(sat),assigned=(data.schedule[key]||{})[role.id]||[];
+  svcDates.forEach(svcDate=>{
+    const key=toKey(svcDate),assigned=(data.schedule[key]||{})[role.id]||[];
+    const isCustom=svcDate.getDay()!==6;
     const tr=el('tr');
-    const dtd=el('td');dtd.textContent=fmtShort(sat);tr.appendChild(dtd);
+    if(isCustom)tr.classList.add('mw-custom-row');
+    const dtd=el('td');
+    dtd.textContent=isCustom
+      ?svcDate.toLocaleDateString('en-US',{weekday:'short'})+' · '+fmtShort(svcDate)
+      :fmtShort(svcDate);
+    tr.appendChild(dtd);
     sortByLast(role.v).forEach(vol=>{
       const td=el('td');const wrap=el('div','mw-cb-wrap');
       const cbId='mw_'+role.id+'_'+key+'_'+vol.replace(/\W/g,'_');
@@ -2067,22 +2126,24 @@ async function copyAsText(){
    ================================================================ */
 function openPdfModal(){
   const list=$('pdf-week-list');list.innerHTML='';
-  for(let i=0;i<12;i++){
-    const sat=shiftWeeks(curDate,i),key=toKey(sat);
+  getServiceDates(curDate,12).forEach((svcDate,i)=>{
+    const key=toKey(svcDate);
     const hasData=data.schedule[key]&&Object.keys(data.schedule[key]).some(k=>(data.schedule[key][k]||[]).length>0);
     const label=document.createElement('label');label.className='pdf-week-item';
     const cb=document.createElement('input');cb.type='checkbox';cb.value=key;cb.checked=(i===0);
     const info=el('div');
-    info.innerHTML='<div class="pdf-wk-date">'+sat.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+'</div><div class="pdf-wk-status '+(hasData?'has':'none')+'">'+(hasData?'Schedule set':'No schedule set')+'</div>';
+    info.innerHTML='<div class="pdf-wk-date">'+svcDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+'</div><div class="pdf-wk-status '+(hasData?'has':'none')+'">'+(hasData?'Schedule set':'No schedule set')+'</div>';
     label.appendChild(cb);label.appendChild(info);list.appendChild(label);
-  }
+  });
   $('pdfOverlay').classList.add('open');
 }
 
 function buildPrintDoc(weekKeys){
   const pages=weekKeys.map(key=>{
     const parts=key.split('-'),y=+parts[0],m=+parts[1],d=+parts[2];
-    const dateStr=new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const pgDate=new Date(y,m-1,d);
+    const dateStr=pgDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const stagTxt=pgDate.getDay()===6?'Shabbat Service Schedule':'Special Service Schedule';
     const sched=data.schedule[key]||{};
     const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
     const grpHTML=getOrderedGroups().filter(g=>grps[g]).map(grpName=>{
@@ -2094,7 +2155,7 @@ function buildPrintDoc(weekKeys){
       }).join('');
       return'<div class="grp"><div class="gh">'+grpName+'</div>'+rowsHTML+'</div>';
     }).join('');
-    return'<div class="pg"><div class="ph"><div class="org">Beth Israel Messianic Synagogue</div><div class="stag">Shabbat Service Schedule</div><div class="dt">'+dateStr+'</div></div><div class="grid">'+grpHTML+'</div><div class="pf">bethisraelnow.com &bull; Jacksonville, Florida</div></div>';
+    return'<div class="pg"><div class="ph"><div class="org">Beth Israel Messianic Synagogue</div><div class="stag">'+stagTxt+'</div><div class="dt">'+dateStr+'</div></div><div class="grid">'+grpHTML+'</div><div class="pf">bethisraelnow.com &bull; Jacksonville, Florida</div></div>';
   }).join('\n');
   return'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Shabbat Schedule</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Lato:wght@400;700&display=swap" rel="stylesheet">'
@@ -2109,6 +2170,7 @@ function buildImageCard(){
   const key=toKey(curDate),sched=data.schedule[key]||{};
   const grps={};data.roles.forEach(r=>{const g=r.g||'Other';(grps[g]=grps[g]||[]).push(r);});
   const dateStr=curDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const stagTxt=curDate.getDay()===6?'Shabbat Service Schedule':'Special Service Schedule';
   const grpHTML=getOrderedGroups().filter(g=>grps[g]).map(grpName=>{
     const roleRows=grps[grpName].map(role=>{
       const assigned=sched[role.id]||[];
@@ -2119,7 +2181,7 @@ function buildImageCard(){
   }).join('');
   const card=el('div');
   card.style.cssText='position:fixed;left:-9999px;top:0;width:660px;background:#fff;font-family:Lato,sans-serif;padding:36px 40px 30px;box-sizing:border-box';
-  card.innerHTML='<div style="text-align:center;padding-bottom:18px;margin-bottom:22px;border-bottom:2.5px solid #C4973A"><div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:#1B2B4B">Beth Israel Messianic Synagogue</div><div style="font-size:9.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:5px">Shabbat Service Schedule</div><div style="font-family:Georgia,serif;font-size:15px;font-style:italic;color:#555;margin-top:7px">'+dateStr+'</div></div>'+grpHTML+'<div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid rgba(27,43,75,.1);font-size:9px;color:#aaa;letter-spacing:.1em;text-transform:uppercase">bethisraelnow.com &bull; Jacksonville, Florida</div>';
+  card.innerHTML='<div style="text-align:center;padding-bottom:18px;margin-bottom:22px;border-bottom:2.5px solid #C4973A"><div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:#1B2B4B">Beth Israel Messianic Synagogue</div><div style="font-size:9.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#C4973A;margin-top:5px">'+stagTxt+'</div><div style="font-family:Georgia,serif;font-size:15px;font-style:italic;color:#555;margin-top:7px">'+dateStr+'</div></div>'+grpHTML+'<div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid rgba(27,43,75,.1);font-size:9px;color:#aaa;letter-spacing:.1em;text-transform:uppercase">bethisraelnow.com &bull; Jacksonville, Florida</div>';
   document.body.appendChild(card);return card;
 }
 
@@ -2889,8 +2951,8 @@ $('lock-btn').addEventListener('click',()=>{
   if(someoneElseEditing()){showEditLockMsg();return;} // exclusive edit lock: one editor at a time
   openPw();
 });
-$('navPrev').addEventListener('click',()=>{curDate=shiftWeeks(curDate,-1);closeDayDrawer();render();});
-$('navNext').addEventListener('click',()=>{curDate=shiftWeeks(curDate,+1);closeDayDrawer();render();});
+$('navPrev').addEventListener('click',()=>{curDate=adjacentServiceDate(curDate,-1);closeDayDrawer();render();});
+$('navNext').addEventListener('click',()=>{curDate=adjacentServiceDate(curDate,+1);closeDayDrawer();render();});
 document.querySelectorAll('.view-tab').forEach(t=>t.addEventListener('click',()=>{closeDayDrawer();switchView(t.dataset.view);}));
 $('calPrev').addEventListener('click',()=>{calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();});
 $('calNext').addEventListener('click',()=>{calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();});
@@ -2938,6 +3000,52 @@ $('addSvcOk').addEventListener('click',()=>{
   $('addSvcOverlay').classList.remove('open');
   render();
 });
+
+// Remove a Service (custom dates only — regular Saturdays are never removable)
+function fmtCustomDate(k){
+  const p=k.split('-');
+  return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+function renderRemoveSvcList(){
+  const list=$('removeSvcList');list.innerHTML='';
+  const dates=(data.customDates||[]).slice().sort();
+  if(!dates.length){
+    const e2=el('div','');e2.style.cssText='padding:14px 4px;font-size:.85rem;font-style:italic;color:#999;text-align:center';
+    e2.textContent='No custom service dates to remove.';list.appendChild(e2);return;
+  }
+  dates.forEach(k=>{
+    const row=el('div','remove-svc-row');
+    const lbl=el('span','remove-svc-date');lbl.textContent=fmtCustomDate(k);
+    const btn=el('button','remove-svc-x');btn.textContent='Remove';
+    btn.addEventListener('click',()=>{
+      const p=k.split('-');
+      const isSat=new Date(+p[0],+p[1]-1,+p[2]).getDay()===6;
+      openConfirm('Remove This Service?',
+        isSat
+          ?fmtCustomDate(k)+' will be removed from the custom date list. It remains available as a regular Saturday service, and its schedule is kept.'
+          :fmtCustomDate(k)+' and all of its assignments, songs, announcements, and prayer requests will be permanently deleted.',
+        ()=>{
+          data.customDates=(data.customDates||[]).filter(x=>x!==k);
+          if(!isSat)delete data.schedule[k];
+          save();
+          if(toKey(curDate)===k&&!isSat){
+            curDate=getNextSat(new Date());
+            calYear=curDate.getFullYear();calMonth=curDate.getMonth();
+            closeDayDrawer();
+          }
+          render();renderRemoveSvcList();
+          showToast('Service removed ✓');
+          if(!(data.customDates||[]).length)$('removeSvcOverlay').classList.remove('open');
+        });
+    });
+    row.appendChild(lbl);row.appendChild(btn);list.appendChild(row);
+  });
+}
+$('remove-service-btn').addEventListener('click',()=>{
+  renderRemoveSvcList();
+  $('removeSvcOverlay').classList.add('open');
+});
+$('removeSvcCancel').addEventListener('click',()=>$('removeSvcOverlay').classList.remove('open'));
 
 // Export dropdown
 const exportBtn=$('export-btn'),exportMenu=$('export-menu');
